@@ -1,22 +1,22 @@
 {
-  "name": "nodenode",
-  "version": "0.0.1",
-  "description": "node node",
-  "main": "nodenode.js",
+  "name": "nodenodenode",
+  "version": "0.0.2",
+  "description": "node node node",
+  "main": "nodenodenode.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/cmptech/nodenode.git"
+    "url": "git+https://github.com/cmptech/nodenodenode.git"
   },
   "keywords": [
-    "nodenode"
+    "nodenodenode"
   ],
   "author": "cmptech",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/cmptech/nodenode/issues"
+    "url": "https://github.com/cmptech/nodenodenode/issues"
   },
-  "homepage": "https://github.com/cmptech/nodenode#readme"
+  "homepage": "https://github.com/cmptech/nodenodenode#readme"
 }
