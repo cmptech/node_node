@@ -5,14 +5,14 @@
  *  [TODO] ws_host/ws_port =>web-socket server
  */
 var logger=console;//default logger
-module.exports={
+var nodenodenode=module.exports={
 	argv2o:argv=>{
 		var m,mm,rt={};
 		for(k in argv)(m=(rt[""+k]=argv[k]).match(/^--?([a-zA-Z0-9-_]*)=(.*)/))&&(rt[m[1]]=(mm=m[2].match(/^".*"$/))?mm[1]:m[2]);
 		return rt;
 	}
 	,daemon:argo=>{
-		if(!argo) argo=this.argv2o(process.argv);
+		if(!argo) argo=nodenodenode.argv2o(process.argv);
 		process.env.UV_THREADPOOL_SIZE = argo.UV_THREADPOOL_SIZE || 126;//MAX=255, increase the thread pool for uv_queue_work()
 
 		logger.log(process.env);
