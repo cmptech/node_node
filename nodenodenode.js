@@ -28,20 +28,22 @@ var nodenodenode=module.exports={
 		//})();
 		//var http_server=require('http').createServer(appModule({argo}));
 		if(server_port){
-			argo.http_server=require('http').createServer(appModule.handlerHttp);//let the internal logic can access
+			if(!appModule.handleHttp) throw new Exception('appModule.handleHttp is not defined.');
+			argo.http_server=require('http').createServer(appModule.handleHttp);//let the internal logic can access
 			argo.http_server.listen(server_port,server_host,()=>{logger.log('http listen on ',server_host,':',server_port)});
 		}
 
 		////////////////////////////////////////////////////////// HTTPS
 		var https_host=argo.https_host||'0.0.0.0',https_port=argo.https_port;
 		if(https_port){
+			if(!appModule.handleHttps) throw new Exception('appModule.handleHttps is not defined.');
 			var https_key=argo.https_key;
 			var https_cert=argo.https_cert;
 			const options = {
 				key: fs.readFileSync(https_key),
 				cert: fs.readFileSync(https_cert)
 			};
-			argo.https_server=require('https').createServer(appModule.handlerHttps);//let the internal logic can access
+			argo.https_server=require('https').createServer(appModule.handleHttps);//let the internal logic can access
 			argo.https_server.listen(server_port,server_host,()=>{logger.log('https listen on ',https_host,':',https_port)});
 		}
 
@@ -77,7 +79,8 @@ var nodenodenode=module.exports={
 					});
 					conn.on("text", function (data_s){
 						logger.log("on text",data_s);
-						appModule.handlerWebSocket(data_s,conn);//TODO
+						if(!appModule.handleWebSocket) throw new Exception('appModule.handleWebSocket is not defined.');
+						appModule.handleWebSocket(data_s,conn);//TODO
 					});
 					conn.on("close", function (code, reason){
 						logger.log("ws_server.close="+code+","+reason,"key="+ws_server.key);
@@ -99,7 +102,7 @@ var nodenodenode=module.exports={
 			}
 		}
 		process.on('uncaughtException', err=>{
-			appModule.handlerUncauhtException(err);
+			appModule.handleUncauhtException(err);
 		});
 		process.on("exit",function(i){
 			logger.log('process.on.exit',i);
