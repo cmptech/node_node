@@ -19,7 +19,7 @@ module.exports={
 		logger.log("process.versions=",process.versions);
 
 		if(!argo.app) throw new Error('-app is needed');
-		var appModule=require(argo.app){argo};
+		var appModule=require(argo.app)({argo});
 
 		////////////////////////////////////////////////////////// HTTP
 		var server_host=argo.server_host||argo.h||'0.0.0.0',server_port=argo.server_port||argo.p;
