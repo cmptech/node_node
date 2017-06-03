@@ -1,14 +1,18 @@
+/*
+ * daemon()
+ *        server_host/server_port=>http server
+ *  [TODO] https_host/https_port=>https server
+ *  [TODO] ws_host/ws_port =>web-socket server
+ */
 var logger=console;//default logger
-var server; 
-module.exports=server={
+module.exports={
 	argv2o:argv=>{
 		var m,mm,rt={};
 		for(k in argv)(m=(rt[""+k]=argv[k]).match(/^--?([a-zA-Z0-9-_]*)=(.*)/))&&(rt[m[1]]=(mm=m[2].match(/^".*"$/))?mm[1]:m[2]);
 		return rt;
 	}
 	,daemon:argo=>{
-		if(!argo) argo=server.argv2o(process.argv);
-
+		if(!argo) argo=this.argv2o(process.argv);
 		process.env.UV_THREADPOOL_SIZE = argo.UV_THREADPOOL_SIZE || 126;//MAX=255, increase the thread pool for uv_queue_work()
 
 		logger.log(process.env);
@@ -17,88 +21,92 @@ module.exports=server={
 		if(!argo.app) throw new Error('-app is needed');
 		var appModule=require(argo.app);
 
-		////////////////////////////////////////////////////////// WebServer Version
-		//server_host/h && server_port/p for web,
-		var hhh=argo.server_host||argo.h||'0.0.0.0',ppp=argo.server_port||argo.p||(()=>{
-			throw new Error("-server_port is mandatory")
-		})();
-		var http_server=require('http').createServer(appModule({argo}));
-		argo.http_server=http_server;//let the internal logic can access
-		http_server.listen(ppp,hhh,()=>{logger.log('web listen on ',hhh,':',ppp)});
+		////////////////////////////////////////////////////////// HTTP
+		var server_host=argo.server_host||argo.h||'0.0.0.0',server_port=argo.server_port||argo.p;
+		//||(()=>{
+		//throw new Error("-server_port is mandatory")
+		//})();
+		//var http_server=require('http').createServer(appModule({argo}));
+		if(server_port){
+			argo.http_server=require('http').createServer(appModule.handlerHttp);//let the internal logic can access
+			argo.http_server.listen(server_port,server_host,()=>{logger.log('http listen on ',server_host,':',server_port)});
+		}
 
-		////////////////////////////////////////////////////////// WebSocketServer Version (TODO fwd basic call to webserver above...)
+		////////////////////////////////////////////////////////// HTTPS
+		var https_host=argo.https_host||'0.0.0.0',https_port=argo.https_port;
+		if(https_port){
+			var https_key=argo.https_key;
+			var https_cert=argo.https_cert;
+			const options = {
+				key: fs.readFileSync(https_key),
+				cert: fs.readFileSync(https_cert)
+			};
+			argo.https_server=require('https').createServer(appModule.handlerHttps);//let the internal logic can access
+			argo.https_server.listen(server_port,server_host,()=>{logger.log('https listen on ',https_host,':',https_port)});
+		}
+
+		////////////////////////////////////////////////////////// WEBSOCKET
 		var ws_port=argo.ws_port,ws_host=argo.ws_host||'0.0.0.0';
 		if(ws_port){
-			var _d_=logger.log;
-			var _client_conn_a={};//buffer of conn
+			var _client_conn_a={};//buffer of conn-s
 			try{
 				var ws = require("nodejs-websocket");
 				if(!ws){
-					_d_("nodejs-websocket module needed");
+					logger.log("nodejs-websocket module needed");
 					process.exit(2);
 				}
 				if(ws_port>1024){
 				}else{
-					_d_("port incorrect:"+ws_port);
-					process.exit(3);//NOTES: outside sh caller will not handle for case 3
+					logger.log("port < 1024?");
+					//process.exit(3);//NOTES: outside sh caller will not handle for case 3
 				}
-				_d_("pid=",process.pid);
-
-				//process.on("exit",function(){
-				//	process.nextTick(function(){
-				//		_d_('This should not run');
-				//	});
-				//	_d_('About to exit.');
-				//});
-
+				logger.log("pid=",process.pid);
 				ws.setMaxBufferLength(20971520);
-				var ws_server = ws.createServer(
-					//{"secure":true},
-				);
+				var ws_opts={};
+				if (argo.ws_secure) ws_opts.secure=true;//TODO wss_host/wss_port
+				var ws_server = argo.ws_server = ws.createServer(ws_opts);
 				ws_server.on('connection',function(conn){
 					var _addr=(conn.socket.remoteAddress);
 					var _port=(conn.socket.remotePort);
 					var _key=""+_addr+":"+_port;
-					_d_("on conn "+_key);
-					conn.key=_key;//用IP加PORT的方法来识别每个conn
+					logger.log("on conn "+_key);
+					conn.key=_key;//用IP加PORT的方法来识别每个conn...
 					_client_conn_a[_key]=conn;
 					conn.on("error", function (e){
-						_d_("ws_server.conn.error",e);
+						logger.log("ws_server.conn.error",e);
 					});
-					conn.on("text", function (data_s) {
-						//TODO fwd logic to http server above in future !!!!
-						//if cmp fwd to http server
-						//else maybe web socket push...
-						_d_("on text",data_s);
+					conn.on("text", function (data_s){
+						logger.log("on text",data_s);
+						appModule.handlerWebSocket(data_s,conn);//TODO
 					});
 					conn.on("close", function (code, reason){
-						//clean up
+						logger.log("ws_server.close="+code+","+reason,"key="+ws_server.key);
 						_client_conn_a[_key]=null;
 						delete _client_conn_a[_key];
-						_d_("ws_server.close="+code+","+reason,"key="+server.key);
 					});
 				});
 				ws_server.on('error', function(e){
-					_d_("ws_server.error",e);
+					logger.log("ws_server.error",e);
 					if (e.code == 'EADDRINUSE'){
-						_d_('Address in use');
+						logger.log('Address in use');
 						process.exit(3);
 					}
 				});
-				_d_(" listen on "+ws_port);
-
-				argo.ws_server=ws_server;//websocket server hook
-
+				logger.log("ws listen on "+ws_port);
 				ws_server.listen(ws_port);
 			}catch(ex){
-				_d_("ws.ex=",ex);
+				logger.log("ws.ex=",ex);
 			}
 		}
-		//process.on('SIGINT', function() {
-		//   //db.stop(function(err) {
-		//   //  process.exit(err ? 1 : 0);
-		//   //});
-		//	process.exit(0);
-		//});
+		process.on('uncaughtException', err=>{
+			appModule.handlerUncauhtException(err);
+		});
+		process.on("exit",function(i){
+			logger.log('process.on.exit',i);
+			appModule.handleExit();
+		});
+		process.on('SIGINT', function(){
+			appModule.handleSIGINT();
+		});
 	}
 };

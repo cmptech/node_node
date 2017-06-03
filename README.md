@@ -1,8 +1,14 @@
-# nodenode
-node based on node.  can used as api server foundation
+# nodenodenode (node^3 or node-cube)
+
+## Design
+
+nodecube
+
+(app => protocol(.http || .ws || .memory) => logic)
+
+=> -app
 
 # zh-cn
 
-就是些小工具，方便做 ApiServer、节点型Server。
-想做到可以兼容P2P/WebSocket/Web
-通用性高一点、灵活一点
+就是些小工具，方便做各类 Server (Web WebSocket Api P2P)
+总之就是目标通用性高一点、灵活一点
