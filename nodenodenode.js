@@ -102,7 +102,7 @@ var nodenodenode=module.exports={
 			}
 		}
 		process.on('uncaughtException', err=>{
-			appModule.handleUncauhtException(err);
+			appModule.handleUncaughtException(err);
 		});
 		process.on("exit",function(i){
 			logger.log('process.on.exit',i);
