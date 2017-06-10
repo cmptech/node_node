@@ -12,7 +12,17 @@ var nodenodenode=module.exports={
 		return rt;
 	}
 	,daemon:argo=>{
-		if(!argo) argo=nodenodenode.argv2o(process.argv);
+		if(!argo){
+			if(typeof(global)!='undefined'){
+				if(typeof(nw)!='undefined'){
+					argo=nodenodenode.argv2o(nw.App.argv);
+				}else{
+				}
+			}else{
+				argo=nodenodenode.argv2o(process.argv);
+			}
+		}
+		logger.log(JSON.stringify(argo));
 		process.env.UV_THREADPOOL_SIZE = argo.UV_THREADPOOL_SIZE || 126;//MAX=255, increase the thread pool for uv_queue_work()
 
 		logger.log(process.env);
