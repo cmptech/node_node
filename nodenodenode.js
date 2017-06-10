@@ -16,6 +16,7 @@ var nodenodenode=module.exports={
 			if(typeof(global)!='undefined'){
 				if(typeof(nw)!='undefined'){
 					argo=nodenodenode.argv2o(nw.App.argv);
+					argo.is_nwjs=true;
 				}else{
 				}
 			}else{
