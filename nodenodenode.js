@@ -1,32 +1,48 @@
 /*
- * daemon()
- *        server_host/server_port=>http server
- *  [TODO] https_host/https_port=>https server
- *  [TODO] ws_host/ws_port =>web-socket server
+ * daemon() fwd to appModule
+ *        server_host/server_port => http server
+ *  [TODO] https_host/https_port  => https server
+ *  [TODO] ws_host/ws_port        => web-socket server
  */
+const util = require('util');
 var logger=console;//default logger
-var nodenodenode=module.exports={
-	argv2o:argv=>{
-		var m,mm,rt={};
-		for(k in argv)(m=(rt[""+k]=argv[k]).match(/^--?([a-zA-Z0-9-_]*)=(.*)/))&&(rt[m[1]]=(mm=m[2].match(/^".*"$/))?mm[1]:m[2]);
-		return rt;
+function isEmpty(o,i){for(i in o){return!1}return!0}
+function copy_o2o(o1,o2){//copy from o2 to o1
+	for(var k in o2){
+		o1[k]=o2[k];
 	}
+	return o1;
+}
+function argv2o(argv,rt,m,mm){
+	var rt={};
+	for(k in argv)(m=(rt[""+k]=argv[k]).match(/^--?([a-zA-Z0-9-_]*)=(.*)/))&&(rt[m[1]]=(mm=m[2].match(/^".*"$/))?mm[1]:m[2]);
+	return rt;
+}
+var nodenodenode=module.exports={
+	argv2o:argv2o
 	,daemon:argo=>{
-		if(!argo){
-			if(typeof(global)!='undefined'){
-				if(typeof(nw)!='undefined'){
-					argo=nodenodenode.argv2o(nw.App.argv);
-					argo.is_nwjs=true;
-				}else{
-				}
-			}else{
-				argo=nodenodenode.argv2o(process.argv);
-			}
+		if(isEmpty(argo)) argo={}; 
+		copy_o2o(argo,nodenodenode.argv2o(process.argv));
+		if(typeof(nw)!='undefined'){
+			copy_o2o(argo,nodenodenode.argv2o(nw.App.argv));
+			argo.is_nwjs=true;
+			//nwjs special...
+			logger={log:function(){
+				try{console.log(util.format.apply(null, arguments))}catch(ex){
+					//console.log('---------');
+					console.log.apply(console,arguments);}
+			}};
 		}
-		logger.log(JSON.stringify(argo));
+		if(typeof(global)!='undefined'){
+			argo.has_global=true;
+		}
+
+		logger.log(argo);
+
 		process.env.UV_THREADPOOL_SIZE = argo.UV_THREADPOOL_SIZE || 126;//MAX=255, increase the thread pool for uv_queue_work()
 
 		logger.log(process.env);
+
 		logger.log("process.versions=",process.versions);
 
 		if(!argo.app) throw new Error('-app is needed');
