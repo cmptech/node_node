@@ -1,6 +1,7 @@
 /*
  * daemon() fwd to appModule
  *        server_host/server_port => http server
+ *        http_host/http_port     => http server
  *  [TODO] https_host/https_port  => https server
  *  [TODO] ws_host/ws_port        => web-socket server
  */
@@ -21,6 +22,7 @@ function argv2o(argv,rt,m,mm){
 var nodenodenode=module.exports={
 	argv2o:argv2o
 	,daemon:argo=>{
+		var flag_init_ok=false;
 		if(isEmpty(argo)) argo={}; 
 		copy_o2o(argo,nodenodenode.argv2o(process.argv));
 		if(typeof(nw)!='undefined'){
@@ -29,7 +31,6 @@ var nodenodenode=module.exports={
 			//nwjs special...
 			logger={log:function(){
 				try{console.log(util.format.apply(null, arguments))}catch(ex){
-					//console.log('---------');
 					console.log.apply(console,arguments);}
 			}};
 		}
@@ -49,15 +50,13 @@ var nodenodenode=module.exports={
 		var appModule=require(argo.app)({argo});
 
 		////////////////////////////////////////////////////////// HTTP
-		var server_host=argo.server_host||argo.h||'0.0.0.0',server_port=argo.server_port||argo.p;
-		//||(()=>{
-		//throw new Error("-server_port is mandatory")
-		//})();
+		var http_host=argo.server_host||argo.http_host||argo.h||'0.0.0.0',http_port=argo.server_port||argo.http_port||argo.p;
 		//var http_server=require('http').createServer(appModule({argo}));
-		if(server_port){
+		if(http_port){
 			if(!appModule.handleHttp) throw new Exception('appModule.handleHttp is not defined.');
 			argo.http_server=require('http').createServer(appModule.handleHttp);//let the internal logic can access
-			argo.http_server.listen(server_port,server_host,()=>{logger.log('http listen on ',server_host,':',server_port)});
+			flag_init_ok=true;
+			argo.http_server.listen(http_port,http_host,()=>{logger.log('http listen on ',http_host,':',http_port)});
 		}
 
 		////////////////////////////////////////////////////////// HTTPS
@@ -71,7 +70,8 @@ var nodenodenode=module.exports={
 				cert: fs.readFileSync(https_cert)
 			};
 			argo.https_server=require('https').createServer(appModule.handleHttps);//let the internal logic can access
-			argo.https_server.listen(server_port,server_host,()=>{logger.log('https listen on ',https_host,':',https_port)});
+			flag_init_ok=true;
+			argo.https_server.listen(http_port,http_host,()=>{logger.log('https listen on ',https_host,':',https_port)});
 		}
 
 		////////////////////////////////////////////////////////// WEBSOCKET
@@ -123,6 +123,7 @@ var nodenodenode=module.exports={
 					}
 				});
 				logger.log("ws listen on "+ws_port);
+				flag_init_ok=true;
 				ws_server.listen(ws_port);
 			}catch(ex){
 				logger.log("ws.ex=",ex);
@@ -138,5 +139,10 @@ var nodenodenode=module.exports={
 		process.on('SIGINT', function(){
 			appModule.handleSIGINT();
 		});
+		if(flag_init_ok){
+		}else{
+			logger.log("missing -ws_port or -server_port or -https_port ?");
+			process.exit(4);
+		}
 	}
 };
