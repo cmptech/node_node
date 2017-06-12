@@ -342,7 +342,7 @@ module.exports = function(opts)
 				logger.log('app.handleUncaughtException() FWD _logic.handleUncaughtException()');
 				_logic.handleUncaughtException();
 			}else{
-				logger.log('TODO _logic.handleUncaughtException()');
+				logger.log('TODO _logic.handleUncaughtException()'+err,err);
 			}
 		}
 		,handleSIGINT:function(){
