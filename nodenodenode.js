@@ -8,27 +8,20 @@
 const util = require('util');
 var logger=console;//default logger
 function isEmpty(o,i){for(i in o){return!1}return!0}
-function copy_o2o(o1,o2){//copy from o2 to o1
-	for(var k in o2){
-		o1[k]=o2[k];
-	}
-	return o1;
-}
-function argv2o(argv,rt,m,mm){
-	var rt={};
-	for(k in argv)(m=(rt[""+k]=argv[k]).match(/^--?([a-zA-Z0-9-_]*)=(.*)/))&&(rt[m[1]]=(mm=m[2].match(/^".*"$/))?mm[1]:m[2]);
-	return rt;
+function copy_o2o(o1,o2){ for(var k in o2){ o1[k]=o2[k]; } return o1; }//copy from o2 to o1, but notes that didn't check o1 here...
+function argv2o(argv,m,mm){
+	var rt={};for(k in argv)(m=(rt[""+k]=argv[k]).match(/^--?([a-zA-Z0-9-_]*)=(.*)/))&&(rt[m[1]]=(mm=m[2].match(/^".*"$/))?mm[1]:m[2]);return rt;
 }
 var nodenodenode=module.exports={
-	argv2o:argv2o
-	,daemon:argo=>{
+	argv2o:argv2o,//expose to caller if they need
+	daemon:argo=>{
 		var flag_init_ok=false;
 		if(isEmpty(argo)) argo={}; 
-		copy_o2o(argo,nodenodenode.argv2o(process.argv));
+		copy_o2o(argo,argv2o(process.argv));
 		if(typeof(nw)!='undefined'){
-			copy_o2o(argo,nodenodenode.argv2o(nw.App.argv));
+			copy_o2o(argo,argv2o(nw.App.argv));
 			argo.is_nwjs=true;
-			//nwjs special...
+			//nwjs special logger
 			logger={log:function(){
 				try{console.log(util.format.apply(null, arguments))}catch(ex){
 					console.log.apply(console,arguments);}
@@ -37,8 +30,10 @@ var nodenodenode=module.exports={
 		if(typeof(global)!='undefined'){
 			argo.has_global=true;
 		}
-
-		logger.log(argo);
+		//logger.log(argo);
+		for(var k in argo){
+			logger.log('argo.'+k+' is '+typeof(argo[k]));
+		}
 
 		process.env.UV_THREADPOOL_SIZE = argo.UV_THREADPOOL_SIZE || 126;//MAX=255, increase the thread pool for uv_queue_work()
 
@@ -47,9 +42,10 @@ var nodenodenode=module.exports={
 		logger.log("process.versions=",process.versions);
 
 		if(!argo.app) throw new Error('-app is needed');
+
 		var appModule=require(argo.app)({argo});
 
-		////////////////////////////////////////////////////////// HTTP
+		////////////////////////////////////////////////////////// HTTP => APP
 		var http_host=argo.server_host||argo.http_host||argo.h||'0.0.0.0',http_port=argo.server_port||argo.http_port||argo.p;
 		//var http_server=require('http').createServer(appModule({argo}));
 		if(http_port){
@@ -141,7 +137,7 @@ var nodenodenode=module.exports={
 		});
 		if(flag_init_ok){
 		}else{
-			logger.log("missing -ws_port or -server_port or -https_port ?");
+			logger.log("missing -ws_port/-server_port/http_port/-https_port ?");
 			process.exit(4);
 		}
 	}
