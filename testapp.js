@@ -274,6 +274,17 @@ module.exports = function(opts)
 						setTimeout(()=>{
 							dfr.resolve({STS:"OK",app_version:Application.version,app_startTime:Application.startTime,logic_version:_logic.version,logic_startTime:_logic.startTime,jobmgr_version:_jobmgr.version,jobmgr_startTime:_jobmgr.startTime});
 						},2222);
+					}else if(mm=m.match(/^SPAPI_(.*)/)){
+						rt.errmsg="WARNING: for internal test only";
+						//NOTES just for internal testing... DON'T call at the user side directly:
+						try{
+							logger.log('called:',m);
+							maxTimeout=9999;//for dev test to SPAPI, 10 sec is the max timeout
+							return sptraderModule.call(m,o.p);
+						}catch(err){
+							logger.log('reject for err',err);
+							dfr.reject(err);
+						}
 					}else if( m!='VOID' && (mm=m.match(/^(.*)/)) ){
 						var nn=mm[1]+'Promise';
 						if(typeof(_logic[nn])!='function') nn=mm[1]+'_Promise';
