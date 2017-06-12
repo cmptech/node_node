@@ -11,17 +11,19 @@ function isEmpty(o,i){for(i in o){return!1}return!0}
 function copy_o2o(o1,o2){ for(var k in o2){ o1[k]=o2[k]; } return o1; }//copy from o2 to o1, but notes that didn't check o1 here...
 function argv2o(argv,m,mm){
 	var rt={};for(k in argv)(m=(rt[""+k]=argv[k]).match(/^--?([a-zA-Z0-9-_]*)=(.*)/))&&(rt[m[1]]=(mm=m[2].match(/^".*"$/))?mm[1]:m[2]);return rt;
-}
+	}
+var flag_loaded=false;
 var nodenodenode=module.exports={
 	argv2o:argv2o,//expose to caller if they need
 	daemon:argo=>{
+		logger.log('!!! flag_loaded='+flag_loaded);
 		var flag_init_ok=false;
 		if(isEmpty(argo)) argo={}; 
 		copy_o2o(argo,argv2o(process.argv));
 		if(typeof(nw)!='undefined'){
 			copy_o2o(argo,argv2o(nw.App.argv));
 			argo.is_nwjs=true;
-			//nwjs special logger
+			//nwjs special...
 			logger={log:function(){
 				try{console.log(util.format.apply(null, arguments))}catch(ex){
 					console.log.apply(console,arguments);}
@@ -51,8 +53,14 @@ var nodenodenode=module.exports={
 		if(http_port){
 			if(!appModule.handleHttp) throw new Exception('appModule.handleHttp is not defined.');
 			argo.http_server=require('http').createServer(appModule.handleHttp);//let the internal logic can access
-			flag_init_ok=true;
-			argo.http_server.listen(http_port,http_host,()=>{logger.log('http listen on ',http_host,':',http_port)});
+			try{
+				argo.http_server.listen(http_port,http_host,()=>{logger.log('http listen on ',http_host,':',http_port)});
+				flag_init_ok=true;
+			}catch(ex){
+				logger.log('failed to start http_server on '+http_host+':'+http_port);
+				logger.log(''+ex);
+				flag_init_ok=false;
+			}
 		}
 
 		////////////////////////////////////////////////////////// HTTPS
@@ -66,8 +74,14 @@ var nodenodenode=module.exports={
 				cert: fs.readFileSync(https_cert)
 			};
 			argo.https_server=require('https').createServer(appModule.handleHttps);//let the internal logic can access
-			flag_init_ok=true;
-			argo.https_server.listen(http_port,http_host,()=>{logger.log('https listen on ',https_host,':',https_port)});
+			try{
+				argo.https_server.listen(https_host,https_host,()=>{logger.log('https listen on ',https_host,':',https_port)});
+				flag_init_ok=true;
+			}catch(ex){
+				logger.log('failed to start https_server on '+https_host+':'+https_port);
+				logger.log(''+ex);
+				flag_init_ok=false;
+			}
 		}
 
 		////////////////////////////////////////////////////////// WEBSOCKET
@@ -119,8 +133,14 @@ var nodenodenode=module.exports={
 					}
 				});
 				logger.log("ws listen on "+ws_port);
-				flag_init_ok=true;
-				ws_server.listen(ws_port);
+				try{
+					ws_server.listen(ws_port);
+					flag_init_ok=true;
+				}catch(ex){
+					logger.log('failed to start ws_server on '+ws_host+':'+ws_port);
+					logger.log(''+ex);
+					flag_init_ok=false;
+				}
 			}catch(ex){
 				logger.log("ws.ex=",ex);
 			}
@@ -136,8 +156,9 @@ var nodenodenode=module.exports={
 			appModule.handleSIGINT();
 		});
 		if(flag_init_ok){
+			flag_loaded=true;
 		}else{
-			logger.log("missing -ws_port/-server_port/http_port/-https_port ?");
+			logger.log("init failed.  missing -ws_port or -server_port or -https_port ?");
 			process.exit(4);
 		}
 	}
