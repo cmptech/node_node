@@ -151,6 +151,7 @@ var nodenodenode=module.exports={
 			process.on('uncaughtException', err=>{
 				appModule.handleUncaughtException(err);
 			});
+			logger.log('!!!! binding process.on("exit") to handleExit()');
 			process.on("exit",function(i){
 				if(appModule.handleExit){
 					appModule.handleExit();
@@ -158,11 +159,22 @@ var nodenodenode=module.exports={
 					logger.log('process.on.exit',i);
 				}
 			});
+			logger.log('!!!! binding process.on("SIGINT") to handleSIGINT');
 			process.on('SIGINT', function(){
+				logger.log('!!!! process.on("SIGINT")');
 				if(appModule.handleSIGINT){
 					appModule.handleSIGINT();
 				}else{
 					logger.log('SIGINT');
+				}
+			});
+			logger.log('!!!! binding process.on("SIGTERM") to handleSIGTERM');
+			process.on('SIGTERM', function(){
+				logger.log('!!!! process.on("SIGTERM")');
+				if(appModule.handleSIGTERM){
+					appModule.handleSIGTERM();
+				}else{
+					logger.log('SIGTERM');
 				}
 			});
 			if(flag_init_ok){

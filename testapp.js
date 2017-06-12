@@ -304,42 +304,28 @@ module.exports = function(opts)
 				});
 		}//handleHttp
 		,handleExit:function(){
-			logger.log('TODO handleExit');
+			if(_logic && _logic.handleExit){
+				logger.log('app.handleExit() FWD _logic.handleExit()');
+				_logic.handleExit();
+			}else{
+				logger.log('TODO _logic.handleExit()');
+			}
 		}
 		,handleUncaughtException:function(err){
-			console.log('handleUncaughtException=>'+err.message);
-			/*
-			if(Application){
-				//Application.persist('LastUncaughtException',(err&&err.message)?err.message:(""+err));
-				var lgc=Application.getLogic();
-				if(lgc){
-					lgc.Quit_Promise().done(()=>{
-						logger.log('Quit for uncaughtException',err);
-					});
-				}else{
-					logger.log('handleUncaughtException',err);
-				}
+			if(_logic && _logic.handleUncaughtException){
+				logger.log('app.handleUncaughtException() FWD _logic.handleUncaughtException()');
+				_logic.handleUncaughtException();
+			}else{
+				logger.log('TODO _logic.handleUncaughtException()');
 			}
-			*/
 		}
 		,handleSIGINT:function(){
-			if(Application){
-				var lgc=Application.getLogic();
-				if(lgc){
-					if(lgc.Quit_Promise){
-						lgc.Quit_Promise().done(()=>{
-							logger.log('Quit for SIGINT/ctrl-c');
-						});
-					}else{
-						logger.log('Direct Quit for SIGINT/ctrl-c');
-						//process.exit();
-						setTimeout(()=>{
-							Application.quit();
-						},1000);
-					}
-				}else{
-					logger.log('Quit for SIGINT/ctrl-c');
-				}
+			if(_logic && _logic.handleSIGINT){
+				logger.log('app.handleSIGINT() FWD _logic.handleSIGINT()');
+				_logic.handleSIGINT();
+			}else{
+				logger.log('TODO _logic.handleSIGINT()');
+				Application.quit();
 			}
 		}
 	};//the return appModule object
