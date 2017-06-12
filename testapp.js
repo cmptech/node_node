@@ -10,15 +10,13 @@ const getTimeStr=function(dt,fmt){
 var logger=console;//default
 const os=require('os');
 const fs=require('fs');
-//process.stdout.write
-//var loggerOverride=function(){
-//	var optionalParameter = [getTimeStr()];
-//	for (var i=0;i<arguments.length;i++) optionalParameter[i+1]=arguments[i];
-//	//try{console.log.apply(console,optionalParameter);}catch(ex){}
-//	var s=getTimeStr() +" "+ util.format.apply(null, arguments) + '\n';
-//	//process.stdout.write(s);
-//	process.stderr.write(s);
-//};
+
+var loggerOverride=function(){
+	var optionalParameter = [getTimeStr()];
+	for (var i=0;i<arguments.length;i++) optionalParameter[i+1]=arguments[i];
+	try{console.log.apply(console,optionalParameter);}catch(ex){}
+};
+
 const o2s=function(o){try{return JSON.stringify(o);}catch(ex){}};
 //const s2o=function(s){try{return JSON.parse(s);}catch(ex){}};//which only accepts {"m":"XXXX"} but fail for parsing like {m:"XXXX"}
 const s2o=function(s){try{return(new Function('return '+s))()}catch(ex){}};
@@ -80,27 +78,36 @@ function StreamToStringPromise(stream,maxTimeout){
 	return dfr.promise;
 }
 
-//var SegfaultHandler=null;
-
-//var logger={ log:loggerOverride };//override the logger.log to add time indicator at the beginning
+var SegfaultHandler=null;
 
 module.exports = function(opts)
 {
 	var argo=opts.argo;
 	if(opts.logger) logger=opts.logger;
-	//else logger={ log:loggerOverride };//override the logger.log to add time indicator at the beginning
+	else logger={ log:loggerOverride };//override the logger.log to add time indicator at the beginning
 
+	////////////////////////////////////////////////////////////////////////////////
+	if(argo.gdb){
+		//https://github.com/ddopson/node-segfault-handler/
+		SegfaultHandler = require('segfault-handler');
+		SegfaultHandler.registerHandler("crash.log"); // With no argument, SegfaultHandler will generate a generic log file name
+		// Optionally specify a callback function for custom logging. This feature is currently only supported for Node.js >= v0.12 running on Linux.
+		//SegfaultHandler.registerHandler(__DIR__+ "/crash.log", function(signal, address, stack) {
+		//	logger.log("signal,address,stack",signal,address,stack);
+		//	// Do what you want with the signal, address, or stack (array)
+		//	// This callback will execute before the signal is forwarded on.
+		//});
+		//SegfaultHandler.causeSegfault();//quick test.
+	}
+
+	////////////////////////////////////////////////////////////////////////////////
 	function isEmpty(o,i){for(i in o){return!1}return!0}
+
 	const util = require('util');
 	const server_id=argo.server_id || "unknown_server_id";
 	const Session={};
-	//const Storage=require('node-persist');
+	var Storage=null;//=require('node-persist');
 	var _logic={},_jobmgr={};
-
-	//Storage.initSync({
-	//	ttl: 7 * 24 * 3600 * 1000,//keep 7 days record for PHP insert/update
-	//	expiredInterval: 24 * 3600 * 1000,//clear buffer every 7 days
-	//});
 
 	var Application={
 		argo,logger,Q,o2s,s2o,fs,os,isEmpty,Session,server_id,getTimeStr
@@ -120,38 +127,45 @@ module.exports = function(opts)
 		//persist() 有点像getSessionVar(),但是如果拿不到就试Storage拿并回写Session
 		//NOTES: 性能还没优化好，但基本功能应该OK了.(不过有BUG，就是需要persist的东西尽量用第一层操作，多层操作时会不准，这是由现在用的Storage不支持多层有关...)
 		//NOTES 另外，node-persist 仅适合单进程工具型ApiServer! 如果是要做 cluster 型，务必不要用,而改为用 redis/db...!!
-		//,persist(){
-		//	var pathOrKey=arguments[0]||"";
-		//	var r=Session;
-		//	var c=pathOrKey.split('.');
-		//	var p=r;
-		//	var k=null;
-		//	for(i=0;i<c.length;i++){p=r;k=c[i];if(!k)break;r[k]||(r[k]={});r=r[k];}
-		//	if(arguments.length>1){//SET MODE
-		//		if(k){
-		//			r=p[k]=arguments[1];//write to memory
-		//			//persit to storage with server_id prefix:
-		//			var async=arguments[2]||false;
-		//			if(async){
-		//				Storage.setItem(server_id +'_' + pathOrKey,r);
-		//			}else{
-		//				Storage.setItemSync(server_id +'_' + pathOrKey,r);
-		//			}
-		//		}
-		//	}else{//GET MODE
-		//		if(!r || isEmpty(r)){//if not a meaningful
-		//			//try load from storage:
-		//			r=Storage.getItemSync(server_id + '_' + pathOrKey);
-		//			if(r){
-		//				if(k){//if found, try write back to session as well...
-		//					p[k]=r;
-		//					r=p[k];
-		//				}
-		//			}
-		//		}
-		//	}
-		//	return r;
-		//}
+		,persist(){
+			if(!Storage){
+				Storage=require('node-persist');
+				Storage.initSync({
+					ttl: 7 * 24 * 3600 * 1000,//keep 7 days record for PHP insert/update
+					expiredInterval: 24 * 3600 * 1000,//clear buffer every 7 days
+				});
+			}
+			var pathOrKey=arguments[0]||"";
+			var r=Session;
+			var c=pathOrKey.split('.');
+			var p=r;
+			var k=null;
+			for(i=0;i<c.length;i++){p=r;k=c[i];if(!k)break;r[k]||(r[k]={});r=r[k];}
+			if(arguments.length>1){//SET MODE
+				if(k){
+					r=p[k]=arguments[1];//write to memory
+					//persit to storage with server_id prefix:
+					var async=arguments[2]||false;
+					if(async){
+						Storage.setItem(server_id +'_' + pathOrKey,r);
+					}else{
+						Storage.setItemSync(server_id +'_' + pathOrKey,r);
+					}
+				}
+			}else{//GET MODE
+				if(!r || isEmpty(r)){//if not a meaningful
+					//try load from storage:
+					r=Storage.getItemSync(server_id + '_' + pathOrKey);
+					if(r){
+						if(k){//if found, try write back to session as well...
+							p[k]=r;
+							r=p[k];
+						}
+					}
+				}
+			}
+			return r;
+		}
 		,tryRequire(mmm,fff){
 			try{
 				if(fff){
@@ -175,7 +189,7 @@ module.exports = function(opts)
 		,TriggerReload(){
 			//TMP TEST
 			//if(argo && argo.is_nwjs){
-			//	var _win=argo.init_window;
+			//	var _win=argo.nwjs_win;
 			//	if(_win){
 			//		_win.alert('Reload...');
 			//	}
@@ -188,14 +202,15 @@ module.exports = function(opts)
 			}
 			var _func=function(){
 				delete _jobmgr;
-				//_jobmgr=null;
 				delete _logic;
-				//TODO
-				//_logic=null;
-				//var jobmgrModule=Application.tryRequire('./jobmgr.js',true);
-				//var logicModule=Application.tryRequire('./logic.js',true);
-				//_jobmgr=jobmgrModule(Application);
-				//_logic=logicModule(Application);
+				var jobmgrModule=Application.tryRequire('./jobmgr.js',true);
+				var logicModule=Application.tryRequire('./logic.js',true);
+				if(jobmgrModule){
+					_jobmgr=jobmgrModule(Application);
+				}
+				if(logicModule){
+					_logic=logicModule(Application);
+				}
 				if(!isEmpty(_logic) && !isEmpty(_jobmgr)){
 					logger.log("_logic.version=",_logic.version);
 					logger.log("_jobmgr.version=",_jobmgr.version);
@@ -204,7 +219,7 @@ module.exports = function(opts)
 					Session.LogicVersion=_logic.version;
 					Session.JobMgrVersion=_jobmgr.version;
 
-					//WJC TMP
+					if(Storage)
 					Session.auto_login_flag=Storage.getItemSync(server_id+'_auto_login_flag');
 					logger.log('_jobmgr._EntryPromise()[');
 					_jobmgr._EntryPromise()
@@ -257,7 +272,7 @@ module.exports = function(opts)
 						Application.TriggerReload();
 						//给点时间让之前那个loop完成...
 						setTimeout(()=>{
-							dfr.resolve({STS:"OK",app_version:_logic.version,app_startTime:_logic.startTime,jobmgr_version:_jobmgr.version,jobmgr_startTime:_jobmgr.startTime});
+							dfr.resolve({STS:"OK",app_version:Application.version,app_startTime:Application.startTime,logic_version:_logic.version,logic_startTime:_logic.startTime,jobmgr_version:_jobmgr.version,jobmgr_startTime:_jobmgr.startTime});
 						},2222);
 					}else if( m!='VOID' && (mm=m.match(/^(.*)/)) ){
 						var nn=mm[1]+'Promise';
@@ -328,7 +343,5 @@ module.exports = function(opts)
 				Application.quit();
 			}
 		}
-	};//the return appModule object
+	};//appModule
 };
-
-
