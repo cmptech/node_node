@@ -2,6 +2,7 @@ const util = require('util');
 const moment = require('moment-timezone');//for datetime
 moment.tz.setDefault("Asia/Hong_Kong");
 const __DIR__= __dirname;//PHP compliance
+var approot=__DIR__;//default
 const getTimeStr=function(dt,fmt){
 	if(!dt)dt=new Date();
 	if(!fmt)fmt='YYYY-MM-DD HH:mm:ss.SSS';
@@ -21,7 +22,7 @@ const o2s=function(o){try{return JSON.stringify(o);}catch(ex){}};
 //const s2o=function(s){try{return JSON.parse(s);}catch(ex){}};//which only accepts {"m":"XXXX"} but fail for parsing like {m:"XXXX"}
 const s2o=function(s){try{return(new Function('return '+s))()}catch(ex){}};
 
-/* TODO fix stdin
+/* TODO fix stdin for nwjs...
 https://github.com/cotejp/nwjs-j5-fix/blob/master/nwjs-j5-fix.js
 var obj = {
   fix: function() {
@@ -103,6 +104,8 @@ module.exports = function(opts)
 	////////////////////////////////////////////////////////////////////////////////
 	function isEmpty(o,i){for(i in o){return!1}return!0}
 
+	if(argo.approot) approot=argo.approot;
+
 	const util = require('util');
 	const server_id=argo.server_id || "unknown_server_id";
 	const Session={};
@@ -174,26 +177,19 @@ module.exports = function(opts)
 				}
 				return require(mmm);
 			}catch(ex){
-				logger.log("tryRequire("+mmm+").ex=",ex);
+				logger.log("! DEBUG tryRequire("+mmm+").ex="+ex);
 				//return ex;
 				return null;
 			};
 		}
 		,devlog(){
 			var s=getTimeStr() +" "+ util.format.apply(null, arguments) + '\n';
-			var filename = __dirname+"/"+server_id+".dev.log";
+			var filename = __DIR__+"/"+server_id+".dev.log";
 			fs.appendFile(filename, s, function(err) {if(err) throw err;}); 
 		}
 		,quit(x){ process.exit(x||0); }
 
 		,TriggerReload(){
-			//TMP TEST
-			//if(argo && argo.is_nwjs){
-			//	var _win=argo.nwjs_win;
-			//	if(_win){
-			//		_win.alert('Reload...');
-			//	}
-			//}
 			var ttt=0;
 			if(_jobmgr){
 				if(_jobmgr.setReloadFlag)
@@ -203,8 +199,8 @@ module.exports = function(opts)
 			var _func=function(){
 				delete _jobmgr;
 				delete _logic;
-				var jobmgrModule=Application.tryRequire('./jobmgr.js',true);
-				var logicModule=Application.tryRequire('./logic.js',true);
+				var jobmgrModule=Application.tryRequire(approot+'/jobmgr.js',true);
+				var logicModule=Application.tryRequire(approot+'/logic.js',true);
 				if(jobmgrModule){
 					_jobmgr=jobmgrModule(Application);
 				}
@@ -239,6 +235,8 @@ module.exports = function(opts)
 							}
 						});
 					logger.log(']_jobmgr._EntryPromise()');
+				}else{
+					logger.log('WARNING: not found logic for jobmgr at nodenodenode !!!');
 				}
 			};
 			if(ttt>0) setTimeout(_func,ttt);

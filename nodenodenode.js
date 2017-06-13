@@ -46,7 +46,12 @@ var nodenodenode=module.exports={
 
 			logger.log("process.versions=",process.versions);
 
-			if(!argo.app) throw new Error('-app is needed');
+			if(!argo.app){
+				if(!argo.approot){//using egapp must specify the approot...
+					throw new Error('-app or -approot is needed');
+				}
+				argo.app=__dirname + '/egapp.js';//load the egapp instead
+			}
 
 			var appModule=require(argo.app)({argo});
 

@@ -1,5 +1,6 @@
 require('./nodenodenode').daemon({
-	app:__dirname+'/testapp.js',
+	//app:__dirname+'/egapp.js',
+	approot:__dirname,//need for using default app(egapp), then auto find the "app.js" in folder $approot ...
 	http_port:4321,
 });
 setTimeout(()=>{
@@ -10,4 +11,3 @@ setTimeout(()=>{
 	exec_o.stdout.pipe(process.stdout);
 	//exec_o.stderr.pipe(process.stderr);
 },444);
-
