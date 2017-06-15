@@ -272,25 +272,37 @@ module.exports = function(opts)
 						setTimeout(()=>{
 							dfr.resolve({STS:"OK",app_version:Application.version,app_startTime:Application.startTime,logic_version:_logic.version,logic_startTime:_logic.startTime,jobmgr_version:_jobmgr.version,jobmgr_startTime:_jobmgr.startTime});
 						},2222);
-					}else if(mm=m.match(/^SPAPI_(.*)/)){
-						rt.errmsg="WARNING: for internal test only";
-						//NOTES just for internal testing... DON'T call at the user side directly:
-						try{
-							logger.log('called:',m);
-							maxTimeout=9999;//for dev test to SPAPI, 10 sec is the max timeout
-							return sptraderModule.call(m,o.p);
-						}catch(err){
-							logger.log('reject for err',err);
-							dfr.reject(err);
-						}
-					}else if( m!='VOID' && (mm=m.match(/^(.*)/)) ){
+					}
+					//else if(mm=m.match(/^SPAPI_(.*)/))
+					//{
+					//	rt.errmsg="WARNING: for internal test only";
+					//	//NOTES just for internal testing... DON'T call at the user side directly:
+					//	try{
+					//		logger.log('called:',m);
+					//		maxTimeout=9999;//for dev test to SPAPI, 10 sec is the max timeout
+					//		return sptraderModule.call(m,o.p);
+					//	}catch(err){
+					//		logger.log('reject for err',err);
+					//		dfr.reject(err);
+					//}
+					//}
+					else if( m!='VOID' && (mm=m.match(/^(.*)/)) ){
 						var nn=mm[1]+'Promise';
 						if(typeof(_logic[nn])!='function') nn=mm[1]+'_Promise';
 						if(typeof(_logic[nn])!='function') nn=mm[1];//After all fixed with Promise,line should be commented.
 						if(typeof(_logic[nn])!='function'){
-							rt.errcode=666;
-							rt.errmsg='Unknown '+mm[1]+"/"+nn;
-							dfr.resolve(rt);
+							if(typeof(_logic['call'])=='function'){
+								try{
+									return _logic.call(mm[1],o.p) || Q({STS:"KO",errmsg:" Not found "+mm[1]});
+								}catch(ex){
+									rt.errmsg=''+mm[1]+'.ex='+ex;
+									dfr.resolve(rt);
+								}
+							}else{
+								rt.errcode=666;
+								rt.errmsg='Unknown '+mm[1]+"/"+nn;
+								dfr.resolve(rt);
+							}
 						}else{
 							try{
 								return _logic[nn](o.p) || Q({STS:"KO",errmsg:" "+nn+" returns not Promise"});
