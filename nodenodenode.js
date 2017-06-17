@@ -5,6 +5,7 @@
  *  [TODO] https_host/https_port  => https server
  *  [TODO] ws_host/ws_port        => web-socket server
  */
+const Q = require('q');
 const util = require('util');
 var logger=console;//default logger
 function isEmpty(o,i){for(i in o){return!1}return!0}
@@ -18,9 +19,11 @@ var nodenodenode=module.exports={
 	argv2o:argv2o,//expose to caller if they need
 	daemon:this_argo=>{
 		if(!isEmpty(this_argo)) copy_o2o(argo,this_argo);
+		var rt={STS:'OK'};
 		if(flag_init_ok){
-			console.log('duplicate init');
+			//console.log('duplicate init');
 			copy_o2o(argo,this_argo);
+			rt.errmsg='duplicate init';
 		}else{
 			copy_o2o(argo,argv2o(process.argv));
 			if(typeof(nw)!='undefined'){
@@ -63,6 +66,7 @@ var nodenodenode=module.exports={
 				argo.http_server=require('http').createServer(appModule.handleHttp);//let the internal logic can access
 				try{
 					argo.http_server.listen(http_port,http_host,()=>{logger.log('http listen on ',http_host,':',http_port)});
+					rt.flag_http=true;
 					flag_init_ok=true;
 				}catch(ex){
 					logger.log('failed to start http_server on '+http_host+':'+http_port);
@@ -85,6 +89,7 @@ var nodenodenode=module.exports={
 				try{
 					argo.https_server.listen(https_host,https_host,()=>{logger.log('https listen on ',https_host,':',https_port)});
 					flag_init_ok=true;
+					rt.flag_https=true;
 				}catch(ex){
 					logger.log('failed to start https_server on '+https_host+':'+https_port);
 					logger.log(''+ex);
@@ -144,6 +149,7 @@ var nodenodenode=module.exports={
 					try{
 						ws_server.listen(ws_port);
 						flag_init_ok=true;
+						rt.flag_ws=true;
 					}catch(ex){
 						logger.log('failed to start ws_server on '+ws_host+':'+ws_port);
 						logger.log(''+ex);
@@ -184,9 +190,12 @@ var nodenodenode=module.exports={
 			});
 			if(flag_init_ok){
 			}else{
-				logger.log("init failed.  missing -ws_port or -server_port or -https_port ?");
-				process.exit(4);
+				//logger.log("init failed.  missing -ws_port or -server_port or -https_port ?");
+				//process.exit(4);
+				rt.STS='KO';
+				rt.errmsg='init failed,missing -ws_port or -server_port or -https_port ?';
 			}
 		}//!flag_init_ok
+		return Q(rt);
 	}//daemon()
 };
