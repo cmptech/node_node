@@ -1,9 +1,10 @@
 /*
- * daemon() fwd to appModule
+ * .daemon() fwd req to appModule
  *        server_host/server_port => http server
- *        http_host/http_port     => http server
- *  [TODO] https_host/https_port  => https server
- *  [TODO] ws_host/ws_port        => web-socket server
+ *    or  http_host/http_port     => http server
+ *         https_host/https_port  => https server
+ *         ws_host/ws_port        => web-socket server
+ *                   + ws_secure  => wss
  */
 const Q = require('q');
 const util = require('util');
@@ -50,10 +51,10 @@ var nodenodenode=module.exports={
 			logger.log("process.versions=",process.versions);
 
 			if(!argo.app){
-				if(!argo.approot){//using egapp must specify the approot...
+				if(!argo.approot){//must specify the approot for default egapp
 					throw new Error('-app or -approot is needed');
 				}
-				argo.app=__dirname + '/egapp.js';//load the egapp instead
+				argo.app=__dirname + '/egapp.js';//load the default egapp instead
 			}
 
 			var appModule=require(argo.app)({argo});
@@ -115,7 +116,7 @@ var nodenodenode=module.exports={
 					logger.log("pid=",process.pid);
 					ws.setMaxBufferLength(20971520);
 					var ws_opts={};
-					if (argo.ws_secure) ws_opts.secure=true;//TODO wss_host/wss_port
+					if (argo.ws_secure) ws_opts.secure=true;
 					var ws_server = argo.ws_server = ws.createServer(ws_opts);
 					ws_server.on('connection',function(conn){
 						var _addr=(conn.socket.remoteAddress);
@@ -130,7 +131,7 @@ var nodenodenode=module.exports={
 						conn.on("text", function (data_s){
 							logger.log("on text",data_s);
 							if(!appModule.handleWebSocket) throw new Exception('appModule.handleWebSocket is not defined.');
-							appModule.handleWebSocket(data_s,conn);//TODO
+							appModule.handleWebSocket(data_s,conn);
 						});
 						conn.on("close", function (code, reason){
 							logger.log("ws_server.close="+code+","+reason,"key="+ws_server.key);
@@ -162,7 +163,6 @@ var nodenodenode=module.exports={
 			process.on('uncaughtException', err=>{
 				appModule.handleUncaughtException(err);
 			});
-			logger.log('!!!! binding process.on("exit") to handleExit()');
 			process.on("exit",function(i){
 				if(appModule.handleExit){
 					appModule.handleExit();
@@ -170,7 +170,6 @@ var nodenodenode=module.exports={
 					logger.log('process.on.exit',i);
 				}
 			});
-			logger.log('!!!! binding process.on("SIGINT") to handleSIGINT');
 			process.on('SIGINT', function(){
 				logger.log('!!!! process.on("SIGINT")');
 				if(appModule.handleSIGINT){
@@ -179,7 +178,6 @@ var nodenodenode=module.exports={
 					logger.log('SIGINT');
 				}
 			});
-			logger.log('!!!! binding process.on("SIGTERM") to handleSIGTERM');
 			process.on('SIGTERM', function(){
 				logger.log('!!!! process.on("SIGTERM")');
 				if(appModule.handleSIGTERM){

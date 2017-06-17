@@ -339,6 +339,12 @@ module.exports = function(opts)
 					logger.log(`] ${m} ${tmAgetTime} ${tmZgetTime}`);
 				});
 		}//handleHttp
+		,handleWebSocket(s,conn){
+			logger.log('handleWebSocket.s=',s);
+			//TODO  参考上面的 handleHttp 调度 logic 然后返回结果..
+			//NOTES: 还要考虑兼容之前的 call token 方法..
+			conn.sendText(o2s({STS:'TODO'}));
+		}
 		,handleExit:function(){
 			if(_logic && _logic.handleExit){
 				logger.log('app.handleExit() FWD _logic.handleExit()');
