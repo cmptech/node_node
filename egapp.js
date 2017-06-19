@@ -207,7 +207,11 @@ module.exports = function(opts)
 				if(logicModule){
 					_logic=logicModule(Application);
 				}
-				if(!isEmpty(_logic) && !isEmpty(_jobmgr)){
+				if(isEmpty(_logic)){
+					logger.log('WARNING: not found logic module for nodenodenode !!!');
+				}else if(isEmpty(_jobmgr)){
+					logger.log('WARNING: not found jobmgr module for nodenodenode !!!');
+				}else{
 					logger.log("_logic.version=",_logic.version);
 					logger.log("_jobmgr.version=",_jobmgr.version);
 
@@ -217,33 +221,30 @@ module.exports = function(opts)
 
 					if(Storage)
 					Session.auto_login_flag=Storage.getItemSync(server_id+'_auto_login_flag');
+
 					logger.log('_jobmgr._EntryPromise()[');
 					_jobmgr._EntryPromise()
 						.fail(err=>{
 							logger.log('_jobmgr._EntryPromise.fail=',err);
-							return err;//will fall into done();
+							return err;//NOTES: will fall into done();
 						})
 						.done(rst=>{
 							//logger.log('DEBUG _jobmgr._EntryPromise.done()',rst);
 							if(rst && rst.toReload){
 								logger.log('Reload JobMgr....');
 							}else{
-								logger.log('Quit JobMgr....');
+								logger.log('Quit JobMgr....',rst);
 								_logic.Quit_Promise().done(()=>{
 									logger.log('Auto quiting for _jobmgr._EntryPromise.done.');
 								});
 							}
 						});
 					logger.log(']_jobmgr._EntryPromise()');
-				}else{
-					logger.log('WARNING: not found logic for jobmgr at nodenodenode !!!');
 				}
 			};
 			if(ttt>0) setTimeout(_func,ttt);
 			else _func();
 		}
-		//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-		// NOTES: 新加函数跟具体业务有关基本都要在 logic！！！
 	};
 	Application.version=Application.getTimeStr(fs.statSync(__filename).mtime);
 	Application.startTime=Application.getTimeStr();
@@ -253,7 +254,7 @@ module.exports = function(opts)
 		handleHttp:function(req,res){
 			var tmA=new Date();
 			var tmAgetTime=Application.getTimeStr(tmA);
-			var rt={};
+			var rt={STS:'KO'};
 			var m="VOID";
 			logger.log(`${tmAgetTime} ${tmA} [`);
 			StreamToStringPromise(req)
@@ -268,32 +269,18 @@ module.exports = function(opts)
 						},11);
 					}else if(m=='LogicReload'){
 						Application.TriggerReload();
-						//给点时间让之前那个loop完成...
 						setTimeout(()=>{
 							dfr.resolve({STS:"OK",app_version:Application.version,app_startTime:Application.startTime,logic_version:_logic.version,logic_startTime:_logic.startTime,jobmgr_version:_jobmgr.version,jobmgr_startTime:_jobmgr.startTime});
-						},2222);
+						},2222);//sleep a little while to let prev App finish reload...
 					}
-					//else if(mm=m.match(/^SPAPI_(.*)/))
-					//{
-					//	rt.errmsg="WARNING: for internal test only";
-					//	//NOTES just for internal testing... DON'T call at the user side directly:
-					//	try{
-					//		logger.log('called:',m);
-					//		maxTimeout=9999;//for dev test to SPAPI, 10 sec is the max timeout
-					//		return sptraderModule.call(m,o.p);
-					//	}catch(err){
-					//		logger.log('reject for err',err);
-					//		dfr.reject(err);
-					//}
-					//}
 					else if( m!='VOID' && (mm=m.match(/^(.*)/)) ){
-						var nn=mm[1]+'Promise';
-						if(typeof(_logic[nn])!='function') nn=mm[1]+'_Promise';
-						if(typeof(_logic[nn])!='function') nn=mm[1];//After all fixed with Promise,line should be commented.
+						var nn=mm[1]+'Promise';//try find XXXXPromise() first
+						if(typeof(_logic[nn])!='function') nn=mm[1]+'_Promise';//then try find XXXX_Promise()
+						if(typeof(_logic[nn])!='function') nn=mm[1];// fall back to try XXXX()
 						if(typeof(_logic[nn])!='function'){
-							if(typeof(_logic['call'])=='function'){
+							if(typeof(_logic['call'])=='function'){//try .call() if any
 								try{
-									return _logic.call(mm[1],o.p) || Q({STS:"KO",errmsg:" Not found "+mm[1]});
+									return _logic.call(mm[1],o.p) || Q({STS:"KO",errmsg:" No Return for call("+mm[1]}+")");
 								}catch(ex){
 									rt.errmsg=''+mm[1]+'.ex='+ex;
 									dfr.resolve(rt);
@@ -323,28 +310,34 @@ module.exports = function(opts)
 				}).fail((err)=>{
 					logger.log('fail.err=',err);
 					if(!rt.errmsg)rt.errmsg=""+err;
-					if(!rt.STS) rt.STS="KO";
-					return err;
+					//if(!rt.STS) rt.STS="KO";
+					return err;//then back to done()
 				}).done(rst=>{
 					rt=rst||{};
 					if(!rt.STS) rt.STS="KO";
 					try{
 						res.write(o2s(rt));
+					}catch(ex){
+						logger.log('fail res.write() at done(), ex=',ex);
+					}
+					try{
 						res.end();
 					}catch(ex){
-						logger.log('failed to write to response at done(), ex=',ex);
+						logger.log('fail res.end() at done(), ex=',ex);
 					}
 					var tmZ=rt.tmZ=new Date();
 					var tmZgetTime=Application.getTimeStr(tmZ);
 					logger.log(`] ${m} ${tmAgetTime} ${tmZgetTime}`);
 				});
 		}//handleHttp
+
+		//TODO  参考上面的 handleHttp 调度 logic 然后返回结果..
+		//NOTES: 还要考虑兼容之前的 call token 方法..
 		,handleWebSocket(s,conn){
 			logger.log('handleWebSocket.s=',s);
-			//TODO  参考上面的 handleHttp 调度 logic 然后返回结果..
-			//NOTES: 还要考虑兼容之前的 call token 方法..
 			conn.sendText(o2s({STS:'TODO'}));
 		}
+
 		,handleExit:function(){
 			if(_logic && _logic.handleExit){
 				logger.log('app.handleExit() FWD _logic.handleExit()');
@@ -353,6 +346,7 @@ module.exports = function(opts)
 				logger.log('TODO _logic.handleExit()');
 			}
 		}
+
 		,handleUncaughtException:function(err){
 			if(_logic && _logic.handleUncaughtException){
 				logger.log('app.handleUncaughtException() FWD _logic.handleUncaughtException()');
@@ -361,6 +355,7 @@ module.exports = function(opts)
 				logger.log('TODO _logic.handleUncaughtException()'+err,err);
 			}
 		}
+
 		,handleSIGINT:function(){
 			if(_logic && _logic.handleSIGINT){
 				logger.log('app.handleSIGINT() FWD _logic.handleSIGINT()');
