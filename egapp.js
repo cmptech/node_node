@@ -22,7 +22,7 @@ const o2s=function(o){try{return JSON.stringify(o);}catch(ex){}};
 //const s2o=function(s){try{return JSON.parse(s);}catch(ex){}};//which only accepts {"m":"XXXX"} but fail for parsing like {m:"XXXX"}
 const s2o=function(s){try{return(new Function('return '+s))()}catch(ex){}};
 
-/* TODO fix stdin for nwjs...
+/* fix stdin for nwjs... can fix at logic.js if needed.
 https://github.com/cotejp/nwjs-j5-fix/blob/master/nwjs-j5-fix.js
 var obj = {
   fix: function() {
@@ -184,8 +184,8 @@ module.exports = function(opts)
 		}
 		,devlog(){
 			var s=getTimeStr() +" "+ util.format.apply(null, arguments) + '\n';
-			var filename = __DIR__+"/"+server_id+".dev.log";
-			fs.appendFile(filename, s, function(err) {if(err) throw err;}); 
+			var filename = approot+"/"+server_id+".dev.log";
+			fs.appendFile(filename, s, function(err) {if(err) throw err;});
 		}
 		,quit(x){ process.exit(x||0); }
 
@@ -249,7 +249,7 @@ module.exports = function(opts)
 	Application.version=Application.getTimeStr(fs.statSync(__filename).mtime);
 	Application.startTime=Application.getTimeStr();
 	Application.TriggerReload();
-	
+
 	return {
 		handleHttp:function(req,res){
 			var tmA=new Date();
@@ -259,10 +259,11 @@ module.exports = function(opts)
 			logger.log(`${tmAgetTime} ${tmA} [`);
 			StreamToStringPromise(req)
 				.then(o=>{
+					if(!o)throw new Error('empty request?');
 					var dfr=Q.defer();
 					m=o.m||"VOID";
 					var mm;
-					var maxTimeout=30000;//default 30 sec timeout...TODO will be overrided by api param later?
+					var maxTimeout=o.timeout || 30000;
 					if(m=='GetVersion'){
 						setTimeout(()=>{
 							dfr.resolve({STS:"OK",app_version:Application.version,app_startTime:Application.startTime});
@@ -331,8 +332,7 @@ module.exports = function(opts)
 				});
 		}//handleHttp
 
-		//TODO  参考上面的 handleHttp 调度 logic 然后返回结果..
-		//NOTES: 还要考虑兼容之前的 call token 方法..
+		//TODO
 		,handleWebSocket(s,conn){
 			logger.log('handleWebSocket.s=',s);
 			conn.sendText(o2s({STS:'TODO'}));
@@ -343,7 +343,7 @@ module.exports = function(opts)
 				logger.log('app.handleExit() FWD _logic.handleExit()');
 				_logic.handleExit();
 			}else{
-				logger.log('TODO _logic.handleExit()');
+				logger.log('SKIP _logic.handleExit()');
 			}
 		}
 
@@ -352,7 +352,7 @@ module.exports = function(opts)
 				logger.log('app.handleUncaughtException() FWD _logic.handleUncaughtException()');
 				_logic.handleUncaughtException();
 			}else{
-				logger.log('TODO _logic.handleUncaughtException()'+err,err);
+				logger.log('SKIP _logic.handleUncaughtException()'+err,err);
 			}
 		}
 
@@ -361,7 +361,7 @@ module.exports = function(opts)
 				logger.log('app.handleSIGINT() FWD _logic.handleSIGINT()');
 				_logic.handleSIGINT();
 			}else{
-				logger.log('TODO _logic.handleSIGINT()');
+				logger.log('SKIP _logic.handleSIGINT()');
 				Application.quit();
 			}
 		}

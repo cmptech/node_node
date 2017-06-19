@@ -52,9 +52,9 @@ var nodenodenode=module.exports={
 
 			if(!argo.app){
 				if(!argo.approot){//must specify the approot for default egapp
-					throw new Error('-app or -approot is needed');
+					throw new Error('-approot is needed if -app is absent');
 				}
-				argo.app=__dirname + '/egapp.js';//load the default egapp instead
+				argo.app=__dirname + '/egapp.js';//load the default egapp ...
 			}
 
 			var appModule=require(argo.app)({argo});
