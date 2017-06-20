@@ -109,7 +109,7 @@ module.exports = function(opts)
 	const util = require('util');
 	const server_id=argo.server_id || "unknown_server_id";
 	const Session={};
-	var Storage=null;//=require('node-persist');
+	var _Storage=null;//for persist() only, don't use at app...
 	var _logic={},_jobmgr={};
 
 	var Application={
@@ -127,13 +127,13 @@ module.exports = function(opts)
 			return r;
 		}
 
-		//persist() 有点像getSessionVar(),但是如果拿不到就试Storage拿并回写Session
-		//NOTES: 性能还没优化好，但基本功能应该OK了.(不过有BUG，就是需要persist的东西尽量用第一层操作，多层操作时会不准，这是由现在用的Storage不支持多层有关...)
+		//persist() 有点像getSessionVar(),但是如果拿不到就试_Storage拿并回写Session
+		//NOTES: 性能还没优化好，但基本功能应该OK了.(不过有BUG，就是需要persist的东西尽量用第一层操作，多层操作时会不准，这是由现在用的_Storage不支持多层有关...)
 		//NOTES 另外，node-persist 仅适合单进程工具型ApiServer! 如果是要做 cluster 型，务必不要用,而改为用 redis/db...!!
 		,persist(){
-			if(!Storage){
-				Storage=require('node-persist');
-				Storage.initSync({
+			if(!_Storage){
+				_Storage=require('node-persist');
+				_Storage.initSync({
 					ttl: 7 * 24 * 3600 * 1000,//keep 7 days record for PHP insert/update
 					expiredInterval: 24 * 3600 * 1000,//clear buffer every 7 days
 				});
@@ -150,15 +150,15 @@ module.exports = function(opts)
 					//persit to storage with server_id prefix:
 					var async=arguments[2]||false;
 					if(async){
-						Storage.setItem(server_id +'_' + pathOrKey,r);
+						_Storage.setItem(server_id +'_' + pathOrKey,r);
 					}else{
-						Storage.setItemSync(server_id +'_' + pathOrKey,r);
+						_StorageStorage.setItemSync(server_id +'_' + pathOrKey,r);
 					}
 				}
 			}else{//GET MODE
 				if(!r || isEmpty(r)){//if not a meaningful
 					//try load from storage:
-					r=Storage.getItemSync(server_id + '_' + pathOrKey);
+					r=_Storage.getItemSync(server_id + '_' + pathOrKey);
 					if(r){
 						if(k){//if found, try write back to session as well...
 							p[k]=r;
@@ -219,8 +219,9 @@ module.exports = function(opts)
 					Session.LogicVersion=_logic.version;
 					Session.JobMgrVersion=_jobmgr.version;
 
-					if(Storage)
-					Session.auto_login_flag=Storage.getItemSync(server_id+'_auto_login_flag');
+					//let _EntryPromise do it..
+					//if(_Storage)
+					//Session.auto_login_flag=_Storage.getItemSync(server_id+'_auto_login_flag');
 
 					logger.log('_jobmgr._EntryPromise()[');
 					_jobmgr._EntryPromise()
