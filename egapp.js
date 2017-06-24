@@ -106,7 +106,6 @@ module.exports = function(opts)
 
 	if(argo.approot) approot=argo.approot;
 
-	const util = require('util');
 	const server_id=argo.server_id || "unknown_server_id";
 	const Session={};
 	var _Storage=null;//for persist() only, don't use at app...
