@@ -152,7 +152,7 @@ module.exports = function(opts)
 					if(async){
 						_Storage.setItem(server_id +'_' + pathOrKey,r);
 					}else{
-						_StorageStorage.setItemSync(server_id +'_' + pathOrKey,r);
+						_Storage.setItemSync(server_id +'_' + pathOrKey,r);
 					}
 				}
 			}else{//GET MODE
