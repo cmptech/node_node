@@ -1,6 +1,6 @@
 {
   "name": "nodenodenode",
-  "version": "0.0.28",
+  "version": "0.0.29",
   "description": "node node node",
   "main": "nodenodenode.js",
   "scripts": {
@@ -22,7 +22,6 @@
   "dependencies": {
     "moment-timezone": "^0.5.13",
     "node-persist": "^2.0.11",
-    "nodejs-websocket": "^1.7.1",
     "q": "^1.5.0"
   }
 }
