@@ -200,10 +200,13 @@ module.exports = function(opts)
 				delete _jobmgr;
 				delete _logic;
 				var jobmgrModule=Application.tryRequire(approot+'/jobmgr.js',true);
-				var logicModule=Application.tryRequire(approot+'/logic.js',true);
+				if(!jobmgrModule){//if not found the jobmgr at approot then use egjobmgr at __dirname/
+					jobmgrModule=Application.tryRequire(__dirname+'/egjobmgr.js',true);
+				}
 				if(jobmgrModule){
 					_jobmgr=jobmgrModule(Application);
 				}
+				var logicModule=Application.tryRequire(approot+'/logic.js',true);
 				if(logicModule){
 					_logic=logicModule(Application);
 				}
