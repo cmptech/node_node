@@ -5,7 +5,7 @@ module.exports=function(Application){
 		if(Job && Job.logic && Job.logic.Preempt_Promise && "function"==typeof(Job.logic.Preempt_Promise)){
 			//skip, no need to require again
 		}else{
-			var mdl=Application.tryRequire(__dirname + '/job_'+id,true);
+			var mdl=Application.tryRequire(argo.approot + '/job_'+id,true);
 			if(mdl){
 				Job.logic=mdl(Application);
 				Job.sts=Application.persist('job_status_'+id);
