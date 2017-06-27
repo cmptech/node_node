@@ -1,3 +1,4 @@
+var debug=1;
 const util = require('util');
 const moment = require('moment-timezone');//for datetime
 moment.tz.setDefault("Asia/Hong_Kong");
@@ -83,7 +84,10 @@ var SegfaultHandler=null;
 
 module.exports = function(opts)
 {
-	var argo=opts.argo;
+	var argo=opts.argo||{};
+	if(argo.debug>=0){
+		debug=argo.debug;
+	}
 	if(opts.logger) logger=opts.logger;
 	else logger={ log:loggerOverride };//override the logger.log to add time indicator at the beginning
 
