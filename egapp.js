@@ -218,23 +218,19 @@ module.exports = function(opts)
 					logger.log('WARNING: not found logic module for nodenodenode !!!');
 				}else if(isEmpty(_jobmgr)){
 					logger.log('WARNING: not found jobmgr module for nodenodenode !!!');
-				}else{
+				}else{//both _logic & _jobmgr
 					logger.log("_logic.version=",_logic.version);
-					logger.log("_jobmgr.version=",_jobmgr.version);
-
 					Session.ServerStartTime=_logic.startTime;
 					Session.LogicVersion=_logic.version;
-					Session.JobMgrVersion=_jobmgr.version;
 
-					//let _EntryPromise do it..
-					//if(_Storage)
-					//Session.auto_login_flag=_Storage.getItemSync(server_id+'_auto_login_flag');
+					logger.log("_jobmgr.version=",_jobmgr.version);
+					Session.JobMgrVersion=_jobmgr.version;
 
 					logger.log('_jobmgr._EntryPromise()[');
 					_jobmgr._EntryPromise()
 						.fail(err=>{
-							logger.log('_jobmgr._EntryPromise.fail=',err);
-							return err;//NOTES: will fall into done();
+							logger.log('_jobmgr._EntryPromise.fail.err=',err);
+							return err;//to .done()
 						})
 						.done(rst=>{
 							//logger.log('DEBUG _jobmgr._EntryPromise.done()',rst);
@@ -242,9 +238,13 @@ module.exports = function(opts)
 								logger.log('Reload JobMgr....');
 							}else{
 								logger.log('Quit JobMgr....',rst);
-								_logic.Quit_Promise().done(()=>{
-									logger.log('Auto quiting for _jobmgr._EntryPromise.done.');
-								});
+								if(_logic.Quit_Promise){
+									_logic.Quit_Promise().done(()=>{
+										logger.log('_logic.Quit_Promise() after _jobmgr._EntryPromise.done.');
+									});
+								}else{
+									process.exit(1);
+								}
 							}
 						});
 					logger.log(']_jobmgr._EntryPromise()');
