@@ -1,4 +1,4 @@
-var debug=1;
+var debug=0;
 const util = require('util');
 const moment = require('moment-timezone');//for datetime
 moment.tz.setDefault("Asia/Hong_Kong");
@@ -180,6 +180,7 @@ module.exports = function(opts)
 				}
 				return require(mmm);
 			}catch(ex){
+				if(debug>1)
 				logger.log("! DEBUG tryRequire("+mmm+").ex="+ex);
 				//return ex;
 				return null;
