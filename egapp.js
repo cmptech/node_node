@@ -118,7 +118,7 @@ module.exports = function(opts)
 	var Application={
 		argo,logger,Q,o2s,s2o,fs,os,isEmpty,Session,server_id,getTimeStr
 		,getJobMgr(){ return _jobmgr; }
-		,getLogic(){ return _logic; }
+		,getLogic(){ return _logic; }//@deprecated, using .Logic directly (coz the getter/setter is done through defineProperty)
 
 		//根据path去拿内容，"而且自动生成{}...".  跟直接 Session最大的不同是支持路径，这两个特性方便用于需要 path式设置对象....
 		//跟直接 Session.XXXX 的不同主要在于 Session.XXXX不会遇到没有会生成{}、而且不支持路径式访问.
@@ -254,6 +254,20 @@ module.exports = function(opts)
 			else _func();
 		}
 	};
+
+	Object.defineProperty(Application, 'JobMgr',{
+		get: function() { return _jobmgr; },
+		//set: function(newValue) { _logic = newValue; }
+	});
+	Object.defineProperty(Application, 'Logic',{
+		get: function() { return _logic; },
+		//set: function(newValue) { _logic = newValue; }
+	});
+	Object.defineProperty(Application, 'logic',{
+		get: function() { return _logic; },
+		//set: function(newValue) { _logic = newValue; }
+	});
+
 	Application.version=Application.getTimeStr(fs.statSync(__filename).mtime);
 	Application.startTime=Application.getTimeStr();
 	Application.TriggerReload();
