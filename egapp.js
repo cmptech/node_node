@@ -106,6 +106,7 @@ module.exports = function(opts)
 	}
 
 	////////////////////////////////////////////////////////////////////////////////
+	function isOK(rst){return(rst&&rst.STS=='OK')}
 	function isEmpty(o,i){for(i in o){return!1}return!0}
 
 	if(argo.approot) approot=argo.approot;
@@ -116,7 +117,7 @@ module.exports = function(opts)
 	var _logic={},_jobmgr={};
 
 	var Application={
-		argo,logger,Q,o2s,s2o,fs,os,isEmpty,Session,server_id,getTimeStr
+		argo,logger,Q,o2s,s2o,fs,os,isEmpty,Session,server_id,getTimeStr,isOK
 		,getJobMgr(){ return _jobmgr; }
 		,getLogic(){ return _logic; }//@deprecated, using .Logic directly (coz the getter/setter is done through defineProperty)
 
