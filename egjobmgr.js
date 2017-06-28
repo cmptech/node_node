@@ -1,4 +1,3 @@
-//暂时霸位.
 module.exports=function(Application){
 	function _getJob(id){
 		var Job=Application.getSessionVar('Jobs.'+id);
@@ -53,27 +52,36 @@ module.exports=function(Application){
 					}else{
 						var job=_getJob(job_id);
 						var _sleepTime=1111;//default
+
+						//TODO improve the brackets below later...
 						if(job.sts!='disabled'){
 							if(job.logic){
 								if(job.logic.Preempt_Promise && "function"==typeof(job.logic.Preempt_Promise)){
-									job.logic.Preempt_Promise().done(rst=>{
-										if(rst){
-											if(rst.type){
-												process.stdout.write(rst.type);
+									try{
+										job.logic.Preempt_Promise().done(rst=>{
+											if(rst){
+												if(rst.type){
+													process.stdout.write(rst.type);
+												}
+												if(rst.sleepTime){
+													_sleepTime=rst.sleepTime;
+												}
+												if(rst.STS!="OK"){
+													logger.log("WARNING _job_preempt ",job_id,".done(KO!!)",rst);
+												}
+											}else{
+												logger.log("DEBUG job("+job_id+").preempt empty rst?",rst);
 											}
-											if(rst.sleepTime){
-												_sleepTime=rst.sleepTime;
-											}
-											if(rst.STS!="OK"){
-												logger.log("WARNING _job_preempt ",job_id,".done(KO!!)",rst);
-											}
-										}else{
-											logger.log("DEBUG job("+job_id+").preempt empty rst?",rst);
-										}
+											setTimeout(()=>{
+												_job_preempt();
+											},_sleepTime);
+										});
+									}catch(ex){
+										logger.log('ERROR when Preempt_Promise() =',ex);
 										setTimeout(()=>{
 											_job_preempt();
 										},_sleepTime);
-									});
+									}
 								}else{
 									logger.log('ERROR no job.logic.Preempt_Promise for ',job_id,job);
 									setTimeout(()=>{
@@ -102,13 +110,7 @@ module.exports=function(Application){
 
 	///////////////////////////////////////////////////////////////////////////
 	const {Q,o2s,s2o,fs,os,logger,Session,server_id}=Application;
-	//这里暂时先hard code
-	var JobsArr=[
-		//"Health",//简单的健康检查器
-		//"HSI",// 恒指相关价格计算、登录维持 等
-		//"Strategy",// 策略运行器
-	];
-	//maybe jobs can be overrided by call-params
+	var JobsArr=[];
 	var argo=Application.argo || {};
 	if(argo.jobs){
 		JobsArr=s2o(argo.jobs);
