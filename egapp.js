@@ -256,6 +256,9 @@ module.exports = function(opts)
 		}
 	};
 
+	Object.defineProperty(Application, 'debug',{
+		get: function() { return debug; },
+	});
 	Object.defineProperty(Application, 'JobMgr',{
 		get: function() { return _jobmgr; },
 		//set: function(newValue) { _logic = newValue; }
