@@ -227,27 +227,29 @@ module.exports = function(opts)
 					logger.log("_jobmgr.version=",_jobmgr.version);
 					Session.JobMgrVersion=_jobmgr.version;
 
-					logger.log('_jobmgr._EntryPromise()[');
-					_jobmgr._EntryPromise()
-						.fail(err=>{
-							logger.log('_jobmgr._EntryPromise.fail.err=',err);
-							return err;//to .done()
-						})
-						.done(rst=>{
-							//logger.log('DEBUG _jobmgr._EntryPromise.done()',rst);
-							if(rst && rst.toReload){
-								logger.log('Reload JobMgr....');
-							}else{
-								logger.log('Quit JobMgr....',rst);
-								if(_logic.Quit_Promise){
-									_logic.Quit_Promise().done(()=>{
-										logger.log('_logic.Quit_Promise() after _jobmgr._EntryPromise.done.');
-									});
+					setTimeout(()=>{
+						logger.log('_jobmgr._EntryPromise()[');
+						_jobmgr._EntryPromise()
+							.fail(err=>{
+								logger.log('_jobmgr._EntryPromise.fail.err=',err);
+								return err;//to .done()
+							})
+							.done(rst=>{
+								//logger.log('DEBUG _jobmgr._EntryPromise.done()',rst);
+								if(rst && rst.toReload){
+									logger.log('Reload JobMgr....');
 								}else{
-									process.exit(1);
+									logger.log('Quit JobMgr....',rst);
+									if(_logic.Quit_Promise){
+										_logic.Quit_Promise().done(()=>{
+											logger.log('_logic.Quit_Promise() after _jobmgr._EntryPromise.done.');
+										});
+									}else{
+										process.exit(1);
+									}
 								}
-							}
-						});
+							});
+					},111);
 					logger.log(']_jobmgr._EntryPromise()');
 				}
 			};
