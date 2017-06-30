@@ -376,7 +376,7 @@ module.exports = function(opts)
 		,handleUncaughtException:function(err){
 			if(_logic && _logic.handleUncaughtException){
 				logger.log('app.handleUncaughtException() FWD _logic.handleUncaughtException()');
-				_logic.handleUncaughtException();
+				_logic.handleUncaughtException(err);
 			}else{
 				logger.log('SKIP _logic.handleUncaughtException()'+err,err);
 			}
