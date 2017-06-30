@@ -181,9 +181,8 @@ module.exports = function(opts)
 				}
 				return require(mmm);
 			}catch(ex){
-				if(debug>1)
+				if(debug>2)
 				logger.log("! DEBUG tryRequire("+mmm+").ex="+ex);
-				//return ex;
 				return null;
 			};
 		}
