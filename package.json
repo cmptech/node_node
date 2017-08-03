@@ -1,7 +1,7 @@
 {
   "name": "nodenodenode",
-  "version": "0.0.45",
-  "description": "node node node",
+  "version": "0.1.0",
+  "description": "a mini node for app",
   "main": "nodenodenode.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -21,7 +21,7 @@
   "homepage": "https://github.com/cmptech/nodenodenode#readme",
   "dependencies": {
     "moment-timezone": "^0.5.13",
-    "node-persist": "^2.0.11",
+    "node-persist": "^2.1.0",
     "q": "^1.5.0"
   }
 }
