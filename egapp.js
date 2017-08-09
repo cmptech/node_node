@@ -23,6 +23,11 @@ const o2s=function(o){try{return JSON.stringify(o);}catch(ex){}};
 //const s2o=function(s){try{return JSON.parse(s);}catch(ex){}};//which only accepts {"m":"XXXX"} but fail for parsing like {m:"XXXX"}
 const s2o=function(s){try{return(new Function('return '+s))()}catch(ex){}};
 
+// get the 1st match if any:
+function getRegExpMatch(re,s){ var ra=re.exec(s); return (ra && ra[1]) ? ra[1] : "" }
+function trim(s){ return s?s.trim():"" }
+function copy_o2o(o1,o2){ for(var k in o2){ o1[k]=o2[k]; } return o1; }//copy from o2 to o1, but notes that o1 is not checked here...
+
 /* fix stdin for nwjs... can fix at logic.js if needed.
 https://github.com/cotejp/nwjs-j5-fix/blob/master/nwjs-j5-fix.js
 var obj = {
@@ -118,6 +123,7 @@ module.exports = function(opts)
 
 	var Application={
 		argo,logger,Q,o2s,s2o,fs,os,isEmpty,Session,server_id,getTimeStr,isOK
+		,copy_o2o,trim,getRegExpMatch
 		,getJobMgr(){ return _jobmgr; }
 		,getLogic(){ return _logic; }//@deprecated, using .Logic directly (coz the getter/setter is done through defineProperty)
 
