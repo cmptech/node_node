@@ -236,7 +236,8 @@ module.exports = function(opts)
 								return err;//to .done()
 							})
 							.done(rst=>{
-								//logger.log('DEBUG _jobmgr._EntryPromise.done()',rst);
+								console.log( new Error().stack );
+								logger.log('DEBUG _jobmgr._EntryPromise.done()',rst);
 								if(rst && rst.toReload){
 									logger.log('Reload JobMgr....');
 								}else{
@@ -367,12 +368,12 @@ module.exports = function(opts)
 			conn.sendText(o2s({STS:'TODO'}));
 		}
 
-		,handleExit:function(){
+		,handleExit:function(x){
 			if(_logic && _logic.handleExit){
 				logger.log('app.handleExit() FWD _logic.handleExit()');
-				_logic.handleExit();
+				_logic.handleExit(x);
 			}else{
-				logger.log('SKIP _logic.handleExit()');
+				logger.log('SKIP _logic.handleExit()',x);
 			}
 		}
 
