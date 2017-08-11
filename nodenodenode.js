@@ -160,7 +160,7 @@ module.exports=this_argo=>{
 	process.on("exit",function(x){
 		//console.log( new Error().stack );
 		if(appModule.handleExit){
-			appModule.handleExit();
+			appModule.handleExit(x);
 		}else{
 			logger.log('process.on.exit',x);
 		}

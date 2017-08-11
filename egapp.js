@@ -242,7 +242,8 @@ module.exports = function(opts)
 								return err;//to .done()
 							})
 							.done(rst=>{
-								console.log( new Error().stack );
+								logger.log(']_jobmgr._EntryPromise()');
+								//console.log( new Error().stack );
 								logger.log('DEBUG _jobmgr._EntryPromise.done()',rst);
 								if(rst && rst.toReload){
 									logger.log('Reload JobMgr....');
@@ -258,7 +259,6 @@ module.exports = function(opts)
 								}
 							});
 					},111);
-					logger.log(']_jobmgr._EntryPromise()');
 				}
 			};
 			if(ttt>0) setTimeout(_func,ttt);
