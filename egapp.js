@@ -343,10 +343,20 @@ module.exports = function(opts)
 					//if(!rt.STS) rt.STS="KO";
 					return err;//then back to done()
 				}).done(rst=>{
-					rt=rst||{};
-					if(!rt.STS) rt.STS="KO";
 					try{
-						res.write(o2s(rt));
+						if(rst==null){
+							res.write('');
+						}else{
+							if(typeof(rst)=='string'){
+								res.write(rst);
+							}else if(typeof(rst)=='array'){
+								res.write(o2s(rst));
+							}else{
+								rt=rst||{};
+								if(!rt.STS) rt.STS="KO";
+								res.write(o2s(rt));
+							}
+						}
 					}catch(ex){
 						logger.log('fail res.write() at done(), ex=',ex);
 					}
