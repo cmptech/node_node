@@ -185,9 +185,9 @@ module.exports = function(opts)
 				delete _logic;
 				var jobmgrModule=null;
 				if(argo.jobmgr){
-					jobmgrModule=tryRequire(approot+'/'+argo.jobmgr);
+					jobmgrModule=tryRequire(approot+'/'+argo.jobmgr,true);
 					if(!jobmgrModule){
-						jobmgrModule=tryRequire(argo.jobmgr);
+						jobmgrModule=tryRequire(argo.jobmgr,true);
 					}
 				}else{
 					if(!jobmgrModule){
@@ -203,9 +203,9 @@ module.exports = function(opts)
 
 				var logicModule=null;
 				if(argo.logic){
-					logicModule=tryRequire(approot+'/'+argo.logic);
+					logicModule=tryRequire(approot+'/'+argo.logic,true);
 					if(!logicModule){
-						logicModule=tryRequire(argo.logic);
+						logicModule=tryRequire(argo.logic,true);
 					}
 				}else{
 					if(!logicModule){
@@ -322,7 +322,7 @@ module.exports = function(opts)
 							}
 						}else{
 							try{
-								return _logic[nn](o.p) || Q({STS:"KO",errmsg:" "+nn+" returns not Promise"});
+								return _logic[nn](o.p) || Q({STS:"KO",errmsg:" "+nn+" returns nothing?"});
 							}catch(ex){
 								rt.errmsg=''+mm[1]+'.ex='+ex;
 								dfr.resolve(rt);
