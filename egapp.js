@@ -2,8 +2,7 @@ var debug=0;
 const util = require('util');
 const moment = require('moment-timezone');//for datetime
 moment.tz.setDefault("Asia/Hong_Kong");
-const __DIR__= __dirname;//PHP compliance
-var approot=__DIR__;//default
+var approot=__dirname;//default
 const getTimeStr=function(dt,fmt){
 	if(!dt)dt=new Date();
 	if(!fmt)fmt='YYYY-MM-DD HH:mm:ss.SSS';
@@ -30,6 +29,7 @@ function copy_o2o(o1,o2){ for(var k in o2){ o1[k]=o2[k]; } return o1; }//copy fr
 
 const Q=require('q');
 
+//TODO gzip and binary feature not yet supported... 
 const _streamToString=function(stream, cb){
 	var str = '';
 	stream.on('data', function(chunk){
@@ -61,6 +61,21 @@ function StreamToStringPromise(stream,maxTimeout){
 	return dfr.promise;
 }
 
+function tryRequire(mmm,fff){
+	try{
+		if(fff){
+			var p=require.resolve(mmm);
+			delete require.cache[p];
+		}
+		return require(mmm);
+	}catch(ex){
+		if(debug>2)
+			logger.log("! DEBUG tryRequire("+mmm+").ex="+ex);
+		return null;
+	};
+}
+function quit(x){ process.exit(x||0); }
+
 var SegfaultHandler=null;
 
 module.exports = function(opts)
@@ -74,16 +89,10 @@ module.exports = function(opts)
 
 	////////////////////////////////////////////////////////////////////////////////
 	if(argo.gdb){
-		//https://github.com/ddopson/node-segfault-handler/
+		//@ref https://github.com/ddopson/node-segfault-handler/
 		SegfaultHandler = require('segfault-handler');
 		SegfaultHandler.registerHandler("crash.log"); // With no argument, SegfaultHandler will generate a generic log file name
-		// Optionally specify a callback function for custom logging. This feature is currently only supported for Node.js >= v0.12 running on Linux.
-		//SegfaultHandler.registerHandler(__DIR__+ "/crash.log", function(signal, address, stack) {
-		//	logger.log("signal,address,stack",signal,address,stack);
-		//	// Do what you want with the signal, address, or stack (array)
-		//	// This callback will execute before the signal is forwarded on.
-		//});
-		//SegfaultHandler.causeSegfault();//quick test.
+		//SegfaultHandler.causeSegfault();//quick test...
 	}
 
 	////////////////////////////////////////////////////////////////////////////////
@@ -98,13 +107,13 @@ module.exports = function(opts)
 	var _logic={},_jobmgr={};
 
 	var Application={
-		argo,logger,Q,o2s,s2o,fs,os,isEmpty,Session,server_id,getTimeStr,isOK
-		,copy_o2o,trim,getRegExpMatch
-		,getJobMgr(){ return _jobmgr; }
-		,getLogic(){ return _logic; }//@deprecated, using .Logic directly (coz the getter/setter is done through defineProperty)
+		argo,logger,Q,fs,os,Session,server_id
+		,isEmpty,getTimeStr,o2s,s2o,isOK,copy_o2o,trim,getRegExpMatch,tryRequire,quit
 
-		//根据path去拿内容，"而且自动生成{}...".  跟直接 Session最大的不同是支持路径，这两个特性方便用于需要 path式设置对象....
-		//跟直接 Session.XXXX 的不同主要在于 Session.XXXX不会遇到没有会生成{}、而且不支持路径式访问.
+		,getLogic(){ return _logic; }//@deprecated, using .Logic directly (coz the getter/setter is done through defineProperty)
+		,getJobMgr(){ return _jobmgr; }//@deprecated, see above.
+
+		// like Session.XXXX but with pathing (xxx.yyy) feature and auto {} fill in
 		,getSessionVar(){
 			var pathOrKey=arguments[0]||"";
 			var r=Session;
@@ -113,15 +122,13 @@ module.exports = function(opts)
 			return r;
 		}
 
-		//persist() 有点像getSessionVar(),但是如果拿不到就试_Storage拿并回写Session
-		//NOTES: 性能还没优化好，但基本功能应该OK了.(不过有BUG，就是需要persist的东西尽量用第一层操作，多层操作时会不准，这是由现在用的_Storage不支持多层有关...)
-		//NOTES 另外，node-persist 仅适合单进程工具型ApiServer! 如果是要做 cluster 型，务必不要用,而改为用 redis/db...!!
+		//simple persist (dont' use at heavy scene)
 		,persist(){
 			if(!_Storage){
 				_Storage=require('node-persist');
 				var persit_config= argo.persit_config || {
 					continuous: true,
-					ttl: 33 * 24 * 3600 * 1000,//keep 33 days record for PHP insert/update
+					ttl: 33 * 24 * 3600 * 1000,//keep 33 days 
 					expiredInterval: 24 * 3600 * 1000,//clear buffer every day
 				};
 				_Storage.initSync(persit_config);
@@ -157,26 +164,11 @@ module.exports = function(opts)
 			}
 			return r;
 		}
-		,tryRequire(mmm,fff){
-			try{
-				if(fff){
-					var p=require.resolve(mmm);
-					delete require.cache[p];
-				}
-				return require(mmm);
-			}catch(ex){
-				if(debug>2)
-				logger.log("! DEBUG tryRequire("+mmm+").ex="+ex);
-				return null;
-			};
-		}
 		,devlog(){
 			var s=getTimeStr() +" "+ util.format.apply(null, arguments) + '\n';
 			var filename = approot+"/"+server_id+".dev.log";
 			fs.appendFile(filename, s, function(err) {if(err) throw err;});
 		}
-		,quit(x){ process.exit(x||0); }
-
 		,TriggerReload(){
 			var ttt=0;
 			if(_jobmgr){
@@ -187,21 +179,42 @@ module.exports = function(opts)
 			var _func=function(){
 				delete _jobmgr;
 				delete _logic;
-				var jobmgrModule=Application.tryRequire(approot+'/jobmgr.js',true);
-				if(!jobmgrModule){//if not found the jobmgr at approot then use egjobmgr at __dirname/
-					jobmgrModule=Application.tryRequire(__dirname+'/egjobmgr.js',true);
+				var jobmgrModule=null;
+				if(argo.jobmgr){
+					jobmgrModule=tryRequire(approot+'/'+argo.jobmgr);
+					if(!jobmgrModule){
+						jobmgrModule=tryRequire(argo.jobmgr);
+					}
+				}else{
+					if(!jobmgrModule){
+						jobmgrModule=tryRequire(approot+'/jobmgr.js',true);
+					}
+					if(!jobmgrModule){//if not found the jobmgr at approot then use egjobmgr at __dirname/
+						jobmgrModule=tryRequire(__dirname+'/egjobmgr.js',true);
+					}
 				}
 				if(jobmgrModule){
 					_jobmgr=jobmgrModule(Application);
 				}
-				var logicModule=Application.tryRequire(approot+'/logic.js',true);
+
+				var logicModule=null;
+				if(argo.logic){
+					logicModule=tryRequire(approot+'/'+argo.logic);
+					if(!logicModule){
+						logicModule=tryRequire(argo.logic);
+					}
+				}else{
+					if(!logicModule){
+						logicModule=tryRequire(approot+'/logic.js',true);
+					}
+				}
 				if(logicModule){
 					_logic=logicModule(Application);
 				}
 				if(isEmpty(_logic)){
-					logger.log('WARNING: not found logic module for nodenodenode !!!');
+					logger.log('nodenodenode WARNING: not found logic module');
 				}else if(isEmpty(_jobmgr)){
-					logger.log('WARNING: not found jobmgr module for nodenodenode !!!');
+					logger.log('nodenodenode WARNING: not found jobmgr module');
 				}else{//both _logic & _jobmgr
 					logger.log("_logic.version=",_logic.version);
 					Session.ServerStartTime=_logic.startTime;
@@ -258,14 +271,14 @@ module.exports = function(opts)
 		//set: function(newValue) { _logic = newValue; }
 	});
 
-	Application.version=Application.getTimeStr(fs.statSync(__filename).mtime);
-	Application.startTime=Application.getTimeStr();
+	Application.version=getTimeStr(fs.statSync(__filename).mtime);
+	Application.startTime=getTimeStr();
 	Application.TriggerReload();
 
 	return {
 		handleHttp:function(req,res){
 			var tmA=new Date();
-			var tmAgetTime=Application.getTimeStr(tmA);
+			var tmAgetTime=getTimeStr(tmA);
 			var rt={STS:'KO'};
 			var m="VOID";
 			logger.log(`${tmAgetTime} ${tmA} [`);
@@ -339,35 +352,37 @@ module.exports = function(opts)
 						logger.log('fail res.end() at done(), ex=',ex);
 					}
 					var tmZ=rt.tmZ=new Date();
-					var tmZgetTime=Application.getTimeStr(tmZ);
+					var tmZgetTime=getTimeStr(tmZ);
 					logger.log(`] ${m} ${tmAgetTime} ${tmZgetTime}`);
 				});
 		}//handleHttp
 
 		//TODO
 		,handleWebSocket(s,conn){
-			logger.log('handleWebSocket.s=',s);
-			conn.sendText(o2s({STS:'TODO'}));
+			//logger.log('handleWebSocket.s=',s);
+			conn.sendText(s);
 		}
 
 		,handleExit:function(x){
 			if(_logic && _logic.handleExit){
-				logger.log('app.handleExit() FWD _logic.handleExit()');
+				logger.log('app.handleExit() FWD _logic.handleExit()',x);
 				_logic.handleExit(x);
 			}else{
 				logger.log('SKIP _logic.handleExit()',x);
 			}
 		}
 
+		//unexpected error
 		,handleUncaughtException:function(err){
 			if(_logic && _logic.handleUncaughtException){
-				logger.log('app.handleUncaughtException() FWD _logic.handleUncaughtException()');
+				logger.log('app.handleUncaughtException() FWD _logic.handleUncaughtException()',err);
 				_logic.handleUncaughtException(err);
 			}else{
 				logger.log('SKIP _logic.handleUncaughtException()'+err,err);
 			}
 		}
 
+		//ctrl-c
 		,handleSIGINT:function(){
 			if(_logic && _logic.handleSIGINT){
 				logger.log('app.handleSIGINT() FWD _logic.handleSIGINT()');
