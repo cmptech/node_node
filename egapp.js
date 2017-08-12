@@ -11,10 +11,12 @@ const getTimeStr=function(dt,fmt){
 var logger=console;//default
 const os=require('os');
 const fs=require('fs');
+var server_id='';
 
 var loggerOverride=function(){
-	var optionalParameter = [getTimeStr()];
-	for (var i=0;i<arguments.length;i++) optionalParameter[i+1]=arguments[i];
+	var optionalParameter = [server_id,getTimeStr()];
+	var optionalParameter_l = optionalParameter.length;
+	for (var i=0;i<arguments.length;i++) optionalParameter[i+optionalParameter_l]=arguments[i];
 	try{console.log.apply(console,optionalParameter);}catch(ex){}
 };
 
@@ -101,7 +103,9 @@ module.exports = function(opts)
 
 	if(argo.approot) approot=argo.approot;
 
-	const server_id=argo.server_id;
+	if(argo.server_id){
+		server_id=argo.server_id;
+	}
 	const Session={};
 	var _Storage=null;//for persist() only, don't use at app...
 	var _logic={},_jobmgr={};
