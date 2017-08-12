@@ -313,7 +313,7 @@ module.exports = function(opts)
 								}
 							}else{
 								rt.errcode=666;
-								rt.errmsg='Unknown '+mm[1]+"/"+nn;
+								rt.errmsg='Unknown '+mm[1]+'()';
 								dfr.resolve(rt);
 							}
 						}else{
