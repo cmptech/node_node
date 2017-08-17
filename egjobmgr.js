@@ -57,7 +57,11 @@ module.exports=function(Application){
 							if(job.logic){
 								if(job.logic.Preempt_Promise && "function"==typeof(job.logic.Preempt_Promise)){
 									try{
-										job.logic.Preempt_Promise().done(rst=>{
+										job.logic.Preempt_Promise()
+											.then(err=>{
+												return Q({STS:"KO",err})
+											})
+											.done(rst=>{
 											if(rst){
 												if(rst.type){
 													process.stdout.write(rst.type);
