@@ -9,7 +9,6 @@ module.exports=function(Application){
 				Job.logic=mdl(Application);
 				Job.sts=Application.persist('job_status_'+id);
 			}else{
-				logger.log('typeof mdl',typeof(mdl),id);
 				throw new Error("failed to load ./job_"+id+"???");
 			}
 		}

@@ -100,6 +100,7 @@ module.exports = function(opts)
 	////////////////////////////////////////////////////////////////////////////////
 	function isOK(rst){return(rst&&rst.STS=='OK')}
 	function isEmpty(o,i){for(i in o){return!1}return!0}
+	function isAllOK(ra){ var b=false; for(var k in ra){ if(!isOK(ra[k]))return false; b=true; } return b; }
 
 	if(argo.approot) approot=argo.approot;
 
@@ -112,7 +113,7 @@ module.exports = function(opts)
 
 	var Application={
 		argo,logger,Q,fs,os,Session,server_id
-		,isEmpty,getTimeStr,o2s,s2o,isOK,copy_o2o,trim,getRegExpMatch,tryRequire,quit
+		,isEmpty,getTimeStr,o2s,s2o,isOK,isAllOK,copy_o2o,trim,getRegExpMatch,tryRequire,quit
 
 		,getLogic(){ return _logic; }//@deprecated, using .Logic directly (coz the getter/setter is done through defineProperty)
 		,getJobMgr(){ return _jobmgr; }//@deprecated, see above.
@@ -279,7 +280,7 @@ module.exports = function(opts)
 	Application.startTime=getTimeStr();
 	Application.TriggerReload();
 
-	return {
+	var appModule = {
 		handleHttp:function(req,res){
 			var tmA=new Date();
 			var tmAgetTime=getTimeStr(tmA);
@@ -377,34 +378,27 @@ module.exports = function(opts)
 			conn.sendText(s);
 		}
 
-		,handleExit:function(x){
-			if(_logic && _logic.handleExit){
-				logger.log('app.handleExit() FWD _logic.handleExit()',x);
-				_logic.handleExit(x);
-			}else{
-				logger.log('SKIP _logic.handleExit()',x);
-			}
-		}
-
-		//unexpected error
-		,handleUncaughtException:function(err){
-			if(_logic && _logic.handleUncaughtException){
-				logger.log('app.handleUncaughtException() FWD _logic.handleUncaughtException()',err);
-				_logic.handleUncaughtException(err);
-			}else{
-				logger.log('SKIP _logic.handleUncaughtException()'+err,err);
-			}
-		}
-
-		//ctrl-c
-		,handleSIGINT:function(){
-			if(_logic && _logic.handleSIGINT){
-				logger.log('app.handleSIGINT() FWD _logic.handleSIGINT()');
-				_logic.handleSIGINT();
-			}else{
-				logger.log('SKIP _logic.handleSIGINT()');
-				Application.quit();
-			}
-		}
 	};//appModule
+
+	if(_logic && _logic.handleExit){
+		appModule.handleExit=function(x){
+			_logic.handleExit(x);
+		}
+	}
+
+	if(_logic && _logic.handleUncaughtException){
+		appModule.handleUncaughtException=function(err){
+			logger.log('app.handleUncaughtException() FWD _logic.handleUncaughtException()',err);
+			_logic.handleUncaughtException(err);
+		}
+	}
+
+	if(_logic && _logic.handleSIGINT){
+		//ctrl-c
+		appModule.handleSIGINT=function(){
+			logger.log('app.handleSIGINT() FWD _logic.handleSIGINT()');
+			_logic.handleSIGINT();
+		}
+	}
+	return appModule;
 };

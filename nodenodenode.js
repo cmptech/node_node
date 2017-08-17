@@ -150,37 +150,27 @@ module.exports=this_argo=>{
 			logger.log("ws.ex=",ex);
 		}
 	}
-	process.on('uncaughtException', err=>{
-		if(appModule.handleUncaughtException){
+	/////////////////////////////////////
+	if(appModule.handleUncaughtException){
+		process.on('uncaughtException', err=>{
 			appModule.handleUncaughtException(err);
-		}else{
-			logger.log('process.on.handleUncaughtException',err);
-		}
-	});
-	process.on("exit",function(x){
-		//console.log( new Error().stack );
-		if(appModule.handleExit){
+		});
+	}
+	if(appModule.handleExit){
+		process.on("exit",function(x){
 			appModule.handleExit(x);
-		}else{
-			logger.log('process.on.exit',x);
-		}
-	});
-	process.on('SIGINT', function(){
-		logger.log('!!!! process.on("SIGINT")');
-		if(appModule.handleSIGINT){
+		});
+	}
+	if(appModule.handleSIGINT){
+		process.on('SIGINT', function(){
 			appModule.handleSIGINT();
-		}else{
-			logger.log('SIGINT');
-		}
-	});
-	process.on('SIGTERM', function(){
-		logger.log('!!!! process.on("SIGTERM")');
-		if(appModule.handleSIGTERM){
+		});
+	}
+	if(appModule.handleSIGTERM){
+		process.on('SIGTERM', function(){
 			appModule.handleSIGTERM();
-		}else{
-			logger.log('SIGTERM');
-		}
-	});
+		});
+	}
 	if(flag_init_ok){
 	}else{
 		//just warning, for maybe just some jobs done then exit...
