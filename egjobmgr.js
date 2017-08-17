@@ -59,7 +59,8 @@ module.exports=function(Application){
 									try{
 										job.logic.Preempt_Promise()
 											.fail(err=>{
-												return Q({STS:"KO",err})
+												if(err && err.STS) return err;
+												return {STS:"KO",err}
 											})
 											.done(rst=>{
 											if(rst){
