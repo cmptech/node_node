@@ -58,7 +58,7 @@ module.exports=function(Application){
 								if(job.logic.Preempt_Promise && "function"==typeof(job.logic.Preempt_Promise)){
 									try{
 										job.logic.Preempt_Promise()
-											.then(err=>{
+											.fail(err=>{
 												return Q({STS:"KO",err})
 											})
 											.done(rst=>{
