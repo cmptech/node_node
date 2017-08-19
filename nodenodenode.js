@@ -150,27 +150,27 @@ module.exports=this_argo=>{
 			logger.log("ws.ex=",ex);
 		}
 	}
-	/////////////////////////////////////
-	if(appModule.handleUncaughtException){
-		process.on('uncaughtException', err=>{
-			appModule.handleUncaughtException(err);
-		});
-	}
-	if(appModule.handleExit){
-		process.on("exit",function(x){
-			appModule.handleExit(x);
-		});
-	}
-	if(appModule.handleSIGINT){
-		process.on('SIGINT', function(){
-			appModule.handleSIGINT();
-		});
-	}
-	if(appModule.handleSIGTERM){
-		process.on('SIGTERM', function(){
-			appModule.handleSIGTERM();
-		});
-	}
+	///////////////////////////////////// should be done inside appModule
+	//if(appModule.handleUncaughtException){
+	//	process.on('uncaughtException', err=>{
+	//		appModule.handleUncaughtException(err);
+	//	});
+	//}
+	//if(appModule.handleExit){
+	//	process.on("exit",function(x){
+	//		appModule.handleExit(x);
+	//	});
+	//}
+	//if(appModule.handleSIGINT){
+	//	process.on('SIGINT', function(){
+	//		appModule.handleSIGINT();
+	//	});
+	//}
+	//if(appModule.handleSIGTERM){
+	//	process.on('SIGTERM', function(){
+	//		appModule.handleSIGTERM();
+	//	});
+	//}
 	if(flag_init_ok){
 	}else{
 		//just warning, for maybe just some jobs done then exit...

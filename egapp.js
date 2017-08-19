@@ -221,6 +221,45 @@ module.exports = function(opts)
 				}else if(isEmpty(_jobmgr)){
 					logger.log('nodenodenode WARNING: not found jobmgr module');
 				}else{//both _logic & _jobmgr
+
+					if(_logic.handleExit){
+						appModule.handleExit=function(x){
+							_logic.handleExit(x);
+						}
+					}
+
+					if(_logic.handleUncaughtException){
+						appModule.handleUncaughtException=function(err){
+							logger.log('app.handleUncaughtException() FWD _logic.handleUncaughtException()',err);
+							_logic.handleUncaughtException(err);
+						}
+					}
+
+					if(_logic.handleSIGINT){
+						//ctrl-c
+						process.on('SIGINT', function(){
+							_logic.handleSIGINT();
+						});
+					}
+
+					if(_logic.handleUncaughtException){
+						process.on('uncaughtException', err=>{
+							appModule.handleUncaughtException(err);
+						});
+					}				
+
+					if(_logic.handleExit){
+						process.on("exit",function(x){
+							_logic.handleExit(x);
+						});
+					}
+					
+					if(_logic.handleSIGTERM){
+						process.on('SIGTERM', function(){
+							_logic.handleSIGTERM();
+						});
+					}
+					
 					logger.log("_logic.version=",_logic.version);
 					Session.ServerStartTime=_logic.startTime;
 					Session.LogicVersion=_logic.version;
@@ -255,9 +294,10 @@ module.exports = function(opts)
 					},111);
 				}
 			};
+
 			if(ttt>0) setTimeout(_func,ttt);
 			else _func();
-		}
+		}//TriggerReload()
 	};
 
 	Object.defineProperty(Application, 'debug',{
@@ -379,26 +419,5 @@ module.exports = function(opts)
 		}
 
 	};//appModule
-
-	if(_logic && _logic.handleExit){
-		appModule.handleExit=function(x){
-			_logic.handleExit(x);
-		}
-	}
-
-	if(_logic && _logic.handleUncaughtException){
-		appModule.handleUncaughtException=function(err){
-			logger.log('app.handleUncaughtException() FWD _logic.handleUncaughtException()',err);
-			_logic.handleUncaughtException(err);
-		}
-	}
-
-	if(_logic && _logic.handleSIGINT){
-		//ctrl-c
-		appModule.handleSIGINT=function(){
-			logger.log('app.handleSIGINT() FWD _logic.handleSIGINT()');
-			_logic.handleSIGINT();
-		}
-	}
 	return appModule;
 };
