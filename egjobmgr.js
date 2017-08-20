@@ -1,13 +1,27 @@
 module.exports=function(Application){
+	var {Q,o2s,s2o,fs,os,logger,Session,server_id,argo
+		,getSessionVar,tryRequire,persist,getTimeStr
+	}=Application;
+
+	argo=argo || {};
+
 	function _getJob(id){
-		var Job=Application.getSessionVar('Jobs.'+id);
+		var Job=getSessionVar('Jobs.'+id);
 		if(Job && Job.logic && Job.logic.Preempt_Promise && "function"==typeof(Job.logic.Preempt_Promise)){
 			//skip, no need to require again
 		}else{
-			var mdl=Application.tryRequire(argo.approot + '/job_'+id,true);
-			if(mdl){
-				Job.logic=mdl(Application);
-				Job.sts=Application.persist('job_status_'+id);
+			var job_module=tryRequire(argo.approot + '/job_'+id,true);
+			if(job_module){
+				if(job_module.__filename){
+					if(!job_module.version){
+						job_module.version=getTimeStr(fs.statSync(job_module.__filename).mtime)
+					}
+					if(!job_module.startTime){
+						job_module.startTime=getTimeStr()
+					}
+				}
+				Job.logic=job_module(Application);
+				Job.sts=persist('job_status_'+id);
 			}else{
 				throw new Error("failed to load ./job_"+id+"???");
 			}
@@ -17,7 +31,7 @@ module.exports=function(Application){
 
 	//@seeAlso logic.js
 	function changeJobStatus(job_id,new_status){
-		Application.persist('job_status_'+id,new_status);
+		persist('job_status_'+id,new_status);
 	}
 	//@see sub job js
 	function getReloadFlag(){
@@ -113,9 +127,7 @@ module.exports=function(Application){
 	}
 
 	///////////////////////////////////////////////////////////////////////////
-	const {Q,o2s,s2o,fs,os,logger,Session,server_id}=Application;
 	var JobsArr=[];
-	var argo=Application.argo || {};
 	if(argo.jobs){
 		JobsArr=s2o(argo.jobs);
 	}
@@ -123,8 +135,11 @@ module.exports=function(Application){
 
 	var _reload_flag=false;
 
-	var stats = fs.statSync(__filename);//module.filename;
-	var version=Application.getTimeStr(stats.mtime);
-	var startTime=Application.getTimeStr();
-	return {_EntryPromise,version,startTime,changeJobStatus,getReloadFlag,setReloadFlag};
+	//var stats = fs.statSync(__filename);//module.filename;
+	//var version=getTimeStr(stats.mtime);
+	//var startTime=getTimeStr();
+	return {_EntryPromise,__filename
+		//,version,startTime
+		,changeJobStatus,getReloadFlag,setReloadFlag
+	};
 }

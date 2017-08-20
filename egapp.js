@@ -71,8 +71,7 @@ function tryRequire(mmm,fff){
 		}
 		return require(mmm);
 	}catch(ex){
-		if(debug>2)
-			logger.log("! DEBUG tryRequire("+mmm+").ex="+ex);
+		if(debug>2) logger.log("! tryRequire("+mmm+").ex=",ex);
 		return null;
 	};
 }
@@ -199,6 +198,14 @@ module.exports = function(opts)
 					}
 				}
 				if(jobmgrModule){
+					if(jobmgrModule.__filename){
+						if(!jobmgrModule.version){
+							jobmgrModule.version=getTimeStr(fs.statSync(jobmgrModule.__filename).mtime)
+						}
+						if(!jobmgrModule.startTime){
+							jobmgrModule.startTime=getTimeStr()
+						}
+					}
 					_jobmgr=jobmgrModule(Application);
 				}
 
@@ -214,6 +221,14 @@ module.exports = function(opts)
 					}
 				}
 				if(logicModule){
+					if(logicModule.__filename){
+						if(!logicModule.version){
+							logicModule.version=getTimeStr(fs.statSync(logicModule.__filename).mtime)
+						}
+						if(!logicModule.startTime){
+							logicModule.startTime=getTimeStr()
+						}
+					}
 					_logic=logicModule(Application);
 				}
 				if(isEmpty(_logic)){
