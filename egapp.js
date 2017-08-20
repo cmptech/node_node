@@ -168,6 +168,25 @@ module.exports = function(opts)
 			}
 			return r;
 		}
+		,quicklog(){
+			var c=0;
+			var f=null;
+			var a=[];
+			for(var k in arguments){
+				var v = arguments[k];
+				if(c==0){
+					f=v;
+				}else{
+					a.push(v)
+				}
+				c++;
+			}
+			if(!f)throw new Error('quicklog(filename, ....)');
+			var s=getTimeStr() +" "+ util.format.apply(null, arguments) + '\n';
+			fs.appendFile(approot + '/' + f + '.log', s, function(err) {
+				if(err) logger.log('quicklog()',err)
+			});
+		}
 		,devlog(){
 			var s=getTimeStr() +" "+ util.format.apply(null, arguments) + '\n';
 			var filename = approot+"/"+server_id+".dev.log";
@@ -207,6 +226,14 @@ module.exports = function(opts)
 						}
 					}
 					_jobmgr=jobmgrModule(Application);
+					if(_jobmgr.__filename){
+						if(!_jobmgr.version){
+							_jobmgr.version=getTimeStr(fs.statSync(_jobmgr.__filename).mtime)
+						}
+						if(!_jobmgr.startTime){
+							_jobmgr.startTime=getTimeStr()
+						}
+					}
 				}
 
 				var logicModule=null;
@@ -230,6 +257,14 @@ module.exports = function(opts)
 						}
 					}
 					_logic=logicModule(Application);
+					if(_logic.__filename){
+						if(!_logic.version){
+							_logic.version=getTimeStr(fs.statSync(_logic.__filename).mtime)
+						}
+						if(!_logic.startTime){
+							_logic.startTime=getTimeStr()
+						}
+					}
 				}
 				if(isEmpty(_logic)){
 					logger.log('nodenodenode WARNING: not found logic module');
