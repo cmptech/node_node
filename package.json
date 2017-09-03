@@ -1,27 +1,26 @@
 {
-  "name": "nodenodenode",
-  "version": "0.1.18",
-  "description": "a mini node for app",
-  "main": "nodenodenode.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/cmptech/nodenodenode.git"
-  },
-  "keywords": [
-    "nodenodenode"
-  ],
-  "author": "cmptech",
-  "license": "COMMUNISM",
-  "bugs": {
-    "url": "https://github.com/cmptech/nodenodenode/issues"
-  },
-  "homepage": "https://github.com/cmptech/nodenodenode#readme",
-  "dependencies": {
-    "moment-timezone": "^0.5.13",
-    "node-persist": "^2.1.0",
-    "q": "^1.5.0"
-  }
+	"name": "nodenodenode",
+	"version": "0.2",
+	"description": "a nodejs ext for mini app based on Q.js",
+	"main": "nodenodenode.js",
+	"scripts": {
+		"test": "echo \"Error: no test specified\" && exit 1"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/cmptech/nodenodenode.git"
+	},
+	"keywords": [
+		"nodenodenode",
+		"node-cube",
+		"nodecub",
+		"node^3"
+	],
+	"author": "cmptech",
+	"license": "COMMUNISM",
+	"bugs": {
+		"url": "https://github.com/cmptech/nodenodenode/issues"
+	},
+	"homepage": "https://github.com/cmptech/nodenodenode#readme",
+	"dependencies": {}
 }
