@@ -39,7 +39,7 @@ module.exports=this_argo=>{
 			//throw new Error('-approot is needed if -app is absent');
 			rt.approot=argo.approot=process.cwd();
 		}
-		argo.app=__dirname + '/egapp.js';//load the default egapp ...
+		rt.app=argo.app=__dirname + '/egapp.js';//load the default egapp ...
 	}
 	var appModule=require(argo.app)({argo});
 
@@ -48,7 +48,7 @@ module.exports=this_argo=>{
 	//var http_server=require('http').createServer(appModule({argo}));
 	if(http_port){
 		if(!appModule.handleHttp) throw new Exception('appModule.handleHttp is not defined.');
-		rt.http_server=require('http').createServer(appModule.handleHttp);//let the internal logic can access
+		rt.http_server=require('http').createServer(appModule.handleHttp);
 		try{
 			rt.http_server.listen(http_port,http_host,()=>{logger.log('http listen on ',http_host,':',http_port)});
 			rt.flag_http=true;
@@ -69,7 +69,7 @@ module.exports=this_argo=>{
 			key: fs.readFileSync(https_key),
 			cert: fs.readFileSync(https_cert)
 		};
-		rt.https_server=require('https').createServer(appModule.handleHttps);//let the internal logic can access
+		rt.https_server=require('https').createServer(appModule.handleHttps);
 		try{
 			rt.https_server.listen(https_host,https_host,()=>{logger.log('https listen on ',https_host,':',https_port)});
 			flag_daemon=true;

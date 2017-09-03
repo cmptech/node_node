@@ -1,3 +1,4 @@
+//DEPS: npm install nodenodenode moment-timezone q node-persist
 var debug=0;
 const util = require('util');
 const moment = require('moment-timezone');//for datetime
@@ -267,7 +268,7 @@ module.exports = function(opts)
 					}
 				}
 				if(isEmpty(_logic)){
-					logger.log('nodenodenode WARNING: not found logic module');
+					logger.log('nodenodenode WARNING: not found logic module',{logicModule,approot});
 				}else if(isEmpty(_jobmgr)){
 					logger.log('nodenodenode WARNING: not found jobmgr module');
 				}else{//both _logic & _jobmgr
