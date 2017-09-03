@@ -28,7 +28,7 @@ const s2o=function(s){try{return(new Function('return '+s))()}catch(ex){}};
 // get the 1st match if any:
 function getRegExpMatch(re,s){ var ra=re.exec(s); return (ra && ra[1]) ? ra[1] : "" }
 function trim(s){ return s?s.trim():"" }
-function copy_o2o(o1,o2){ for(var k in o2){ o1[k]=o2[k]; } return o1; }//copy from o2 to o1, but notes that o1 is not checked here...
+function copy_o2o(o1,o2){for(var k in o2){o1[k]=o2[k]}return o1}
 
 const Q=require('q');
 

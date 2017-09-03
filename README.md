@@ -1,14 +1,13 @@
 # nodenodenode (node^3 or node-cube)
 
+a tiny app for tiny tools :)
+
 ## Design
 
-nodecube
+```
+nodenodenode
+=> daemon( protocol(.http || .ws || .memory) )
+=> app module => <logic + jobmgr>
+```
 
-(app => protocol(.http || .ws || .memory) => logic)
-
-=> -app
-
-# zh-cn
-
-就是些小工具，方便做各类 Server (Web WebSocket Api P2P)
-总之就是目标通用性高一点、灵活一点
+'egapp.js' and egjobmgr.js are attached to demostrating how to build an app with nodenodenode
