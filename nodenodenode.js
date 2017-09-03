@@ -10,7 +10,8 @@ const util = require('util');
 var logger=console;//default logger
 function isEmpty(o,i){for(i in o){return!1}return!0}
 function copy_o2o(o1,o2){for(var k in o2){o1[k]=o2[k]}return o1}
-function argv2o(argv,m,mm){var rt={};for(k in argv)(m=(rt[""+k]=argv[k]).match(/^(\/|--?)([a-zA-Z0-9-_]*)=(.*)/))&&(rt[m[2]]=(mm=m[3].match(/^".*"$/))?mm[1]:m[3]);return rt}
+//function argv2o(argv,m,mm){var rt={};for(k in argv)(m=(rt[""+k]=argv[k]).match(/^(\/|--?)([a-zA-Z0-9-_]*)=(.*)/))&&(rt[m[2]]=(mm=m[3].match(/^".*"$/))?mm[1]:m[3]);return rt}
+function argv2o(argv,m,mm){var rt={};for(k in argv)(m=(rt[""+k]=argv[k]).match(/^(\/|--?)([a-zA-Z0-9-_]*)="?(.*)"?$/))&&(rt[m[2]]=m[3]);return rt}
 var argo={};
 var flag_daemon=false;
 module.exports=this_argo=>{
