@@ -1,6 +1,6 @@
 {
 	"name": "nodenodenode",
-	"version": "0.2.2",
+	"version": "0.2.3",
 	"description": "a nodejs ext for mini app based on Q.js",
 	"main": "nodenodenode.js",
 	"scripts": {

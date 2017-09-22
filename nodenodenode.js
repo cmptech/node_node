@@ -10,7 +10,6 @@ const util = require('util');
 var logger=console;//default logger
 function isEmpty(o,i){for(i in o){return!1}return!0}
 function copy_o2o(o1,o2){for(var k in o2){o1[k]=o2[k]}return o1}
-//function argv2o(argv,m,mm){var rt={};for(k in argv)(m=(rt[""+k]=argv[k]).match(/^(\/|--?)([a-zA-Z0-9-_]*)=(.*)/))&&(rt[m[2]]=(mm=m[3].match(/^".*"$/))?mm[1]:m[3]);return rt}
 function argv2o(argv,m,mm){var rt={};for(k in argv)(m=(rt[""+k]=argv[k]).match(/^(\/|--?)([a-zA-Z0-9-_]*)="?(.*)"?$/))&&(rt[m[2]]=m[3]);return rt}
 var argo={};
 var flag_daemon=false;
@@ -44,10 +43,9 @@ module.exports=this_argo=>{
 	}
 	var appModule=require(argo.app)({argo});
 
-	////////////////////////////////////////////////////////// HTTP => APP
-	var http_host=argo.server_host||argo.http_host||argo.h||'0.0.0.0',http_port=argo.server_port||argo.http_port||argo.p;
-	//var http_server=require('http').createServer(appModule({argo}));
+	////////////////////////////////////////////////////////// HTTP
 	if(http_port){
+		var http_host=argo.server_host||argo.http_host||argo.h||'localhost',http_port=argo.server_port||argo.http_port||argo.p;
 		if(!appModule.handleHttp) throw new Exception('appModule.handleHttp is not defined.');
 		rt.http_server=require('http').createServer(appModule.handleHttp);
 		try{
@@ -61,16 +59,14 @@ module.exports=this_argo=>{
 	}
 
 	////////////////////////////////////////////////////////// HTTPS
-	var https_host=argo.https_host||'0.0.0.0',https_port=argo.https_port;
 	if(https_port){
+		var https_host=argo.https_host||'localhost',https_port=argo.https_port;
 		if(!appModule.handleHttps) throw new Exception('appModule.handleHttps is not defined.');
-		var https_key=argo.https_key;
-		var https_cert=argo.https_cert;
-		const options = {
+		var {https_key,https_cert}=argo.https_key;
+		rt.https_server=require('https').createServer({
 			key: fs.readFileSync(https_key),
 			cert: fs.readFileSync(https_cert)
-		};
-		rt.https_server=require('https').createServer(appModule.handleHttps);
+		},appModule.handleHttps);
 		try{
 			rt.https_server.listen(https_host,https_host,()=>{logger.log('https listen on ',https_host,':',https_port)});
 			flag_daemon=true;
@@ -82,7 +78,7 @@ module.exports=this_argo=>{
 	}
 
 	////////////////////////////////////////////////////////// WEBSOCKET
-	var ws_port=argo.ws_port,ws_host=argo.ws_host||'0.0.0.0';
+	var ws_port=argo.ws_port,ws_host=argo.ws_host||'localhost';
 	if(ws_port){
 		var _client_conn_a={};//pool
 		try{
