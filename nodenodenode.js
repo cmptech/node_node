@@ -6,17 +6,28 @@
  *         ws_host/ws_port        => web-socket server
  *                   + ws_secure  => wss
  */
+
 const util = require('util');
+
 var logger=console;//default logger
+
 function isEmpty(o,i){for(i in o){return!1}return!0}
+
 function copy_o2o(o1,o2){for(var k in o2){o1[k]=o2[k]}return o1}
+
 function argv2o(argv,m,mm){var rt={};for(k in argv)(m=(rt[""+k]=argv[k]).match(/^(\/|--?)([a-zA-Z0-9-_]*)="?(.*)"?$/))&&(rt[m[2]]=m[3]);return rt}
+
 var argo={};
+
 var flag_daemon=false;
+
 module.exports=this_argo=>{
+
 	if(!isEmpty(this_argo)) copy_o2o(argo,this_argo);
 	var rt={STS:'OK'};
 	copy_o2o(argo,argv2o(process.argv));
+
+	//nwjs
 	if(typeof(nw)!='undefined'){
 		copy_o2o(argo,argv2o(nw.App.argv));
 		rt.is_nwjs=true;
@@ -25,15 +36,15 @@ module.exports=this_argo=>{
 				console.log.apply(console,arguments);}
 		}};
 	}
+
+	//global
 	if(typeof(global)!='undefined'){
 		rt.has_global=has_global=true;
 	}
-	for(var k in argo){
-		logger.log('argo.'+k+' is '+typeof(argo[k]));
-	}
-	process.env.UV_THREADPOOL_SIZE = argo.UV_THREADPOOL_SIZE || 126;//thread pool for uv_queue_work()
-	logger.log(process.env);
-	logger.log("process.versions=",process.versions);
+
+	//thread pool for uv_queue_work()
+	process.env.UV_THREADPOOL_SIZE = argo.UV_THREADPOOL_SIZE || 126;
+
 	if(!argo.app){
 		if(!argo.approot){//must specify the approot for default egapp
 			//throw new Error('-approot is needed if -app is absent');
@@ -44,8 +55,8 @@ module.exports=this_argo=>{
 	var appModule=require(argo.app)({argo});
 
 	////////////////////////////////////////////////////////// HTTP
+	var http_host=argo.server_host||argo.http_host||argo.h||'localhost',http_port=argo.server_port||argo.http_port||argo.p;
 	if(http_port){
-		var http_host=argo.server_host||argo.http_host||argo.h||'localhost',http_port=argo.server_port||argo.http_port||argo.p;
 		if(!appModule.handleHttp) throw new Exception('appModule.handleHttp is not defined.');
 		rt.http_server=require('http').createServer(appModule.handleHttp);
 		try{
@@ -59,8 +70,8 @@ module.exports=this_argo=>{
 	}
 
 	////////////////////////////////////////////////////////// HTTPS
+	var https_host=argo.https_host||'localhost',https_port=argo.https_port;
 	if(https_port){
-		var https_host=argo.https_host||'localhost',https_port=argo.https_port;
 		if(!appModule.handleHttps) throw new Exception('appModule.handleHttps is not defined.');
 		var {https_key,https_cert}=argo.https_key;
 		rt.https_server=require('https').createServer({
@@ -139,6 +150,9 @@ module.exports=this_argo=>{
 			logger.log("ws.ex=",ex);
 		}
 	}
+
+	//TODO IPS of Unix/Windows Socker Support...
+
 	rt.flag_daemon=flag_daemon;
 	return rt;
 };
