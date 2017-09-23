@@ -57,7 +57,6 @@ module.exports=function(Application){
 			if(getReloadFlag()){
 				dfr.resolve({STS:"OK",errmsg:"_EntryPromise skip for() for 'to reload'",toReload:true});
 			}
-			//针对每个job_id构建一个循环函数_job_preempt()并基于每次执行后的.sleepTime(默认1111)来调整下一轮时间。
 			(job_id=>{
 				var _job_preempt=function(){
 					if(getReloadFlag()){

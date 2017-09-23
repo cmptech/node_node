@@ -9,6 +9,8 @@
 
 const util = require('util');
 
+var debug=0;//debug level
+
 var logger=console;//default logger
 
 function isEmpty(o,i){for(i in o){return!1}return!0}
@@ -21,10 +23,11 @@ var argo={};
 
 var flag_daemon=false;
 
-module.exports=this_argo=>{
+module.exports = this_argo => {
 
-	if(!isEmpty(this_argo)) copy_o2o(argo,this_argo);
 	var rt={STS:'OK'};
+
+	//command line parameters by node
 	copy_o2o(argo,argv2o(process.argv));
 
 	//nwjs
@@ -37,6 +40,10 @@ module.exports=this_argo=>{
 		}};
 	}
 
+	if(!isEmpty(this_argo)) copy_o2o(argo,this_argo);
+
+	if(argo.debug) debug=argo.debug;
+
 	//global
 	if(typeof(global)!='undefined'){
 		rt.has_global=has_global=true;
@@ -47,7 +54,6 @@ module.exports=this_argo=>{
 
 	if(!argo.app){
 		if(!argo.approot){//must specify the approot for default egapp
-			//throw new Error('-approot is needed if -app is absent');
 			rt.approot=argo.approot=process.cwd();
 		}
 		rt.app=argo.app=__dirname + '/egapp.js';//load the default egapp ...
@@ -64,8 +70,10 @@ module.exports=this_argo=>{
 			rt.flag_http=true;
 			flag_daemon=true;
 		}catch(ex){
-			logger.log('failed to start http_server on '+http_host+':'+http_port);
-			logger.log(''+ex);
+			if(debug>0){
+				logger.log('failed to start http_server on '+http_host+':'+http_port);
+				logger.log(ex);
+			}
 		}
 	}
 
@@ -83,8 +91,10 @@ module.exports=this_argo=>{
 			flag_daemon=true;
 			rt.flag_https=true;
 		}catch(ex){
-			logger.log('failed to start https_server on '+https_host+':'+https_port);
-			logger.log(''+ex);
+			if(debug>0){
+				logger.log('failed to start https_server on '+https_host+':'+https_port);
+				logger.log(ex);
+			}
 		}
 	}
 
@@ -95,15 +105,17 @@ module.exports=this_argo=>{
 		try{
 			var ws = require("nodejs-websocket");
 			if(!ws){
-				logger.log("nodejs-websocket module needed");
-				process.exit(2);
+				throw new Error("nodejs-websocket module needed for .ws_port/.ws_host");
 			}
 			if(ws_port>1024){
 			}else{
-				logger.log("WARNING port < 1024");
-				//process.exit(3);//NOTES: outside sh caller will not handle for case 3
+				if(debug>1){
+					logger.log("WARNING port < 1024");
+				}
 			}
-			logger.log("pid=",process.pid);
+			if(debug>1){
+				logger.log("pid=",process.pid);
+			}
 			ws.setMaxBufferLength(20971520);
 			var ws_opts={};
 			if (argo.ws_secure) ws_opts.secure=true;
@@ -112,42 +124,57 @@ module.exports=this_argo=>{
 				var _addr=(conn.socket.remoteAddress);
 				var _port=(conn.socket.remotePort);
 				var _key=""+_addr+":"+_port;
-				logger.log("on conn "+_key);
+				if(debug>1){
+					logger.log("on conn "+_key);
+				}
 				conn.key=_key;
 				conn.lmt=(new Date()).getTime();
 				_client_conn_a[_key]=conn;
 				conn.on("error", function (e){
-					logger.log("ws_server.conn.error",e);
+					if(debug>0){
+						logger.log("ws_server.conn.error",e);
+					}
 				});
 				conn.on("text", function (data_s){
-					logger.log("on text",data_s);
+					if(debug>1){
+						logger.log("on text",data_s);
+					}
 					if(!appModule.handleWebSocket) throw new Exception('appModule.handleWebSocket is not defined.');
 					appModule.handleWebSocket(data_s,conn);//left the ball to the appModule.handleWebSocket()
 				});
 				conn.on("close", function (code, reason){
-					logger.log("ws_server.close="+code+","+reason,"key="+ws_server.key);
+					if(debug>1){
+						logger.log("ws_server.close="+code+","+reason,"key="+ws_server.key);
+					}
 					_client_conn_a[_key]=null;
 					delete _client_conn_a[_key];
 				});
 			});
 			ws_server.on('error', function(e){
-				logger.log("ws_server.error",e);
+				if(debug>0){
+					logger.log("ws_server.error",e);
+				}
 				if (e.code == 'EADDRINUSE'){
-					logger.log('Address in use');
-					process.exit(3);
+					throw new Error('Address in use',{ws_port,ws_host});
 				}
 			});
-			logger.log("ws listen on "+ws_port);
+			if(debug>1){
+				logger.log("ws listen on "+ws_port);
+			}
 			try{
 				ws_server.listen(ws_port);
 				flag_daemon=true;
 				rt.flag_ws=true;
 			}catch(ex){
-				logger.log('failed to start ws_server on '+ws_host+':'+ws_port);
-				logger.log(''+ex);
+				if(debug>0){
+					logger.log('failed to start ws_server on '+ws_host+':'+ws_port);
+					logger.log(''+ex);
+				}
 			}
 		}catch(ex){
-			logger.log("ws.ex=",ex);
+			if(debug>0){
+				logger.log("ws.ex=",ex);
+			}
 		}
 	}
 

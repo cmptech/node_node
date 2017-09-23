@@ -1,26 +1,17 @@
 {
 	"name": "nodenodenode",
-	"version": "0.2.4",
-	"description": "a nodejs ext for mini app based on Q.js",
+	"version": "0.2.5",
+	"description": "mini app by wanjochan",
 	"main": "nodenodenode.js",
-	"scripts": {
-		"test": "echo \"Error: no test specified\" && exit 1"
-	},
 	"repository": {
 		"type": "git",
 		"url": "git+https://github.com/cmptech/nodenodenode.git"
 	},
 	"keywords": [
 		"nodenodenode",
-		"node-cube",
-		"nodecub",
-		"node^3"
 	],
 	"author": "cmptech",
 	"license": "COMMUNISM",
-	"bugs": {
-		"url": "https://github.com/cmptech/nodenodenode/issues"
-	},
 	"homepage": "https://github.com/cmptech/nodenodenode#readme",
 	"dependencies": {}
 }

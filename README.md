@@ -1,13 +1,13 @@
-# nodenodenode (node^3 or node-cube)
+# nodenodenode
 
-a tiny app for tiny tools :)
+build tool/soft in few seconds...
 
 ## Design
 
 ```
 nodenodenode
-=> daemon( protocol(.http || .ws || .memory) )
-=> app module => <logic + jobmgr>
+	=> daemon( protocol(http || https || ws || memory || ipc || ...) ) => app module => <logic + jobmgr>
 ```
 
-'egapp.js' and egjobmgr.js are attached to demostrating how to build an app with nodenodenode
+* 'egapp.js' and egjobmgr.js are written to demostrate how to build an app with nodenodenode
+* test_*.js are for your quick reference...

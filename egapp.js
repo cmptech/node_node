@@ -268,9 +268,13 @@ module.exports = function(opts)
 					}
 				}
 				if(isEmpty(_logic)){
-					logger.log('nodenodenode WARNING: not found logic module',{logicModule,approot});
+					if(debug>0){
+						logger.log('nodenodenode WARNING: not found logic module',{logicModule,approot});
+					}
 				}else if(isEmpty(_jobmgr)){
-					logger.log('nodenodenode WARNING: not found jobmgr module');
+					if(debug>0){
+						logger.log('nodenodenode WARNING: not found jobmgr module');
+					}
 				}else{//both _logic & _jobmgr
 
 					if(_logic.handleExit){
@@ -281,7 +285,9 @@ module.exports = function(opts)
 
 					if(_logic.handleUncaughtException){
 						appModule.handleUncaughtException=function(err){
-							logger.log('app.handleUncaughtException() FWD _logic.handleUncaughtException()',err);
+							if(debug>0){
+								logger.log('app.handleUncaughtException() FWD _logic.handleUncaughtException()',err);
+							}
 							_logic.handleUncaughtException(err);
 						}
 					}
@@ -304,38 +310,53 @@ module.exports = function(opts)
 							_logic.handleExit(x);
 						});
 					}
-					
+
 					if(_logic.handleSIGTERM){
 						process.on('SIGTERM', function(){
 							_logic.handleSIGTERM();
 						});
 					}
-					
-					logger.log("_logic.version=",_logic.version);
+
+					if(debug>1){
+						logger.log("_logic.version=",_logic.version);
+					}
 					Session.ServerStartTime=_logic.startTime;
 					Session.LogicVersion=_logic.version;
 
-					logger.log("_jobmgr.version=",_jobmgr.version);
+					if(debug>1){
+						logger.log("_jobmgr.version=",_jobmgr.version);
+					}
 					Session.JobMgrVersion=_jobmgr.version;
 
 					setTimeout(()=>{
-						logger.log('_jobmgr._EntryPromise()[');
+						if(debug>1){
+							logger.log('_jobmgr._EntryPromise()[');
+						}
 						_jobmgr._EntryPromise()
 							.fail(err=>{
-								logger.log('_jobmgr._EntryPromise.fail.err=',err);
+								if(debug>0){
+									logger.log('_jobmgr._EntryPromise.fail.err=',err);
+								}
 								return err;//to .done()
 							})
 							.done(rst=>{
-								logger.log(']_jobmgr._EntryPromise()');
-								//console.log( new Error().stack );
-								logger.log('DEBUG _jobmgr._EntryPromise.done()',rst);
+								if(debug>1){
+									logger.log(']_jobmgr._EntryPromise()');
+									logger.log('DEBUG _jobmgr._EntryPromise.done()',rst);
+								}
 								if(rst && rst.toReload){
-									logger.log('Reload JobMgr....');
+									if(debug>1){
+										logger.log('Reload JobMgr....');
+									}
 								}else{
-									logger.log('Quit JobMgr....',rst);
+									if(debug>1){
+										logger.log('Quit JobMgr....',rst);
+									}
 									if(_logic.Quit_Promise){
 										_logic.Quit_Promise().done(()=>{
-											logger.log('_logic.Quit_Promise() after _jobmgr._EntryPromise.done.');
+											if(debug>1){
+												logger.log('_logic.Quit_Promise() after _jobmgr._EntryPromise.done.');
+											}
 										});
 									}else{
 										process.exit(1);
@@ -377,7 +398,9 @@ module.exports = function(opts)
 			var tmAgetTime=getTimeStr(tmA);
 			var rt={STS:'KO'};
 			var m="VOID";
-			logger.log(`${tmAgetTime} ${tmA} [`);
+			if(debug>1){
+				logger.log(`${tmAgetTime} ${tmA} [`);
+			}
 			StreamToStringPromise(req)
 				.then(o=>{
 					if(!o)throw new Error('empty request?');
@@ -430,7 +453,9 @@ module.exports = function(opts)
 					},maxTimeout);
 					return dfr.promise;
 				}).fail((err)=>{
-					logger.log('fail.err=',err);
+					if(debug>0){
+						logger.log('fail.err=',err);
+					}
 					if(!rt.errmsg)rt.errmsg=""+err;
 					//if(!rt.STS) rt.STS="KO";
 					return err;//then back to done()
@@ -450,22 +475,30 @@ module.exports = function(opts)
 							}
 						}
 					}catch(ex){
-						logger.log('fail res.write() at done(), ex=',ex);
+						if(debug>0){
+							logger.log('fail res.write() at done(), ex=',ex);
+						}
 					}
 					try{
 						res.end();
 					}catch(ex){
-						logger.log('fail res.end() at done(), ex=',ex);
+						if(debug>0){
+							logger.log('fail res.end() at done(), ex=',ex);
+						}
 					}
 					var tmZ=rt.tmZ=new Date();
 					var tmZgetTime=getTimeStr(tmZ);
-					logger.log(`] ${m} ${tmAgetTime} ${tmZgetTime}`);
+					if(debug>1){
+						logger.log(`] ${m} ${tmAgetTime} ${tmZgetTime}`);
+					}
 				});
 		}//handleHttp
 
 		//TODO
 		,handleWebSocket(s,conn){
-			//logger.log('handleWebSocket.s=',s);
+			if(debug>2){
+				logger.log('handleWebSocket.s=',s);
+			}
 			conn.sendText(s);
 		}
 
