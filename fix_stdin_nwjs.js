@@ -1,5 +1,5 @@
-// fix stdin for nwjs... can fix at logic.js if needed.
-//https://github.com/cotejp/nwjs-j5-fix/blob/master/nwjs-j5-fix.js
+//NOTE: demo fix stdin for nwjs... can fix at logic.js if needed.
+//@ref https://github.com/cotejp/nwjs-j5-fix/blob/master/nwjs-j5-fix.js
 var obj = {
 	fix: function() {
 		if (!process.versions.nw || parseFloat(process.versions.nw) < 0.13) {

@@ -31,7 +31,11 @@ module.exports = this_argo => {
 	copy_o2o(argo,argv2o(process.argv));
 
 	//nwjs
-	if(typeof(nw)!='undefined'){
+	if (process.versions.nw) {
+		if('undefined'==typeof nw){
+			logger.log({process_version:process.versions});
+			throw new Error('nw is undefined while process.versions.nw?');
+		}
 		copy_o2o(argo,argv2o(nw.App.argv));
 		rt.is_nwjs=true;
 		logger={log:function(){
