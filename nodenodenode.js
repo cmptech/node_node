@@ -182,7 +182,28 @@ module.exports = this_argo => {
 		}
 	}
 
-	//TODO IPS of Unix/Windows Socker Support...
+	var ipc_path=argo.ipc_path;
+	if(ipc_path){
+		if(!appModule.handleHttp) throw new Exception('appModule.handleHttp is not defined.');
+
+		if (process.platform ==='win32'){
+			ipc_path = ipc_path.replace(/^\//, '');
+			ipc_path = ipc_path.replace(/\//g, '-');
+			ipc_path = `\\\\.\\pipe\\${ipc_path}`;
+		}
+		
+		rt.net_server=require('net').createServer(appModule.handleHttp);
+		try{
+			rt.net_server.listen(ipc_path,()=>{logger.log('net listen on '+ipc_path)});
+			rt.flag_http=true;
+			flag_daemon=true;
+		}catch(ex){
+			if(debug>0){
+				logger.log('failed to start net_server on '+ipc_path);
+				logger.log(ex);
+			}
+		}
+	}
 
 	rt.flag_daemon=flag_daemon;
 	return rt;
