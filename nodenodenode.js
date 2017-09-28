@@ -144,7 +144,7 @@ module.exports = this_argo => {
 						logger.log("on text",data_s);
 					}
 					if(!appModule.handleWebSocket) throw new Exception('appModule.handleWebSocket is not defined.');
-					appModule.handleWebSocket(data_s,conn);//left the ball to the appModule.handleWebSocket()
+					appModule.handleWebSocket(data_s,conn);
 				});
 				conn.on("close", function (code, reason){
 					if(debug>1){
@@ -182,6 +182,7 @@ module.exports = this_argo => {
 		}
 	}
 
+	////////////////////////////////////////////////////////// TCP/IPC
 	var ipc_path=argo.ipc_path;
 	if(ipc_path){
 		if(!appModule.handleHttp) throw new Exception('appModule.handleHttp is not defined.');
@@ -204,6 +205,8 @@ module.exports = this_argo => {
 			}
 		}
 	}
+
+	////////////////////////////////////////////////////////// UDP
 
 	rt.flag_daemon=flag_daemon;
 	return rt;
