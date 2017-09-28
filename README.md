@@ -11,3 +11,9 @@ nodenodenode
 
 * 'egapp.js' and egjobmgr.js are written to demostrate how to build an app with nodenodenode
 * test_*.js are for your quick reference...
+
+
+# TODO
+
+now only supports http/https,
+TCP/UDP/IPC is work-in-progress
