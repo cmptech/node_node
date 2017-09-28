@@ -494,7 +494,108 @@ module.exports = function(opts)
 				});
 		}//handleHttp
 
-		//TODO
+		,handleIPC:function(conn){
+			var tmA=new Date();
+			var tmAgetTime=getTimeStr(tmA);
+			var rt={STS:'KO'};
+			var m="VOID";
+			if(debug>1){
+				logger.log(`${tmAgetTime} ${tmA} [`);
+			}
+			StreamToStringPromise(conn)
+				.then(o=>{
+					if(!o)throw new Error('empty request?');
+					var dfr=Q.defer();
+					m=o.m||"VOID";
+					var mm;
+					var maxTimeout=o.timeout || 30000;
+					if(m=='GetVersion'){
+						setTimeout(()=>{
+							dfr.resolve({STS:"OK",app_version:Application.version,app_startTime:Application.startTime});
+						},11);
+					}else if(m=='LogicReload'){
+						Application.TriggerReload();
+						setTimeout(()=>{
+							dfr.resolve({STS:"OK",app_version:Application.version,app_startTime:Application.startTime,logic_version:_logic.version,logic_startTime:_logic.startTime,jobmgr_version:_jobmgr.version,jobmgr_startTime:_jobmgr.startTime});
+						},2222);//sleep a little while to let prev App finish reload...
+					}
+					else if( m!='VOID' && (mm=m.match(/^(.*)/)) ){
+						var nn=mm[1]+'Promise';//try find XXXXPromise() first
+						if(typeof(_logic[nn])!='function') nn=mm[1]+'_Promise';//then try find XXXX_Promise()
+						if(typeof(_logic[nn])!='function') nn=mm[1];// fall back to try XXXX()
+						if(typeof(_logic[nn])!='function'){
+							if(typeof(_logic['call'])=='function'){//try .call() if any
+								try{
+									return _logic.call(mm[1],o.p) || Q({STS:"KO",errmsg:" No Return for call("+mm[1]}+")");
+								}catch(ex){
+									rt.errmsg=''+mm[1]+'.ex='+ex;
+									dfr.resolve(rt);
+								}
+							}else{
+								rt.errcode=666;
+								rt.errmsg='Unknown '+mm[1]+'()';
+								dfr.resolve(rt);
+							}
+						}else{
+							try{
+								return _logic[nn](o.p) || Q({STS:"KO",errmsg:" "+nn+" returns nothing?"});
+							}catch(ex){
+								rt.errmsg=''+mm[1]+'.ex='+ex;
+								dfr.resolve(rt);
+							}
+						}
+					}else{
+						rt.errcode=666;
+						rt.errmsg='Unknown m='+mm;
+						dfr.resolve(rt);
+					}
+					setTimeout(()=>{
+						dfr.reject({STS:"KO",errmsg:"Timeout("+(maxTimeout/1000)+" sec) when invoke "+m});
+					},maxTimeout);
+					return dfr.promise;
+				}).fail((err)=>{
+					if(debug>0){
+						logger.log('fail.err=',err);
+					}
+					if(!rt.errmsg)rt.errmsg=""+err;
+					//if(!rt.STS) rt.STS="KO";
+					return err;//then back to done()
+				}).done(rst=>{
+					try{
+						if(rst==null){
+							conn.write('');
+						}else{
+							if(typeof(rst)=='string'){
+								conn.write(rst);
+							}else if(typeof(rst)=='array'){
+								conn.write(o2s(rst));
+							}else{
+								rt=rst||{};
+								if(!rt.STS) rt.STS="KO";
+								conn.write(o2s(rt));
+							}
+						}
+					}catch(ex){
+						if(debug>0){
+							logger.log('fail conn.write() at done(), ex=',ex);
+						}
+					}
+					try{
+						conn.end();
+					}catch(ex){
+						if(debug>0){
+							logger.log('fail conn.end() at done(), ex=',ex);
+						}
+					}
+					var tmZ=rt.tmZ=new Date();
+					var tmZgetTime=getTimeStr(tmZ);
+					if(debug>1){
+						logger.log(`] ${m} ${tmAgetTime} ${tmZgetTime}`);
+					}
+				});
+		}//handleIPC
+
+		//TODO !!!
 		,handleWebSocket(s,conn){
 			if(debug>2){
 				logger.log('handleWebSocket.s=',s);

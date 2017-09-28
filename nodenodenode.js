@@ -192,7 +192,7 @@ module.exports = this_argo => {
 			ipc_path = `\\\\.\\pipe\\${ipc_path}`;
 		}
 		
-		rt.net_server=require('net').createServer(appModule.handleHttp);
+		rt.net_server=require('net').createServer(appModule.handleIPC);
 		try{
 			rt.net_server.listen(ipc_path,()=>{logger.log('net listen on '+ipc_path)});
 			rt.flag_http=true;
