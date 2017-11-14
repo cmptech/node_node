@@ -133,8 +133,9 @@ module.exports = function(opts)
 				_Storage=require('node-persist');
 				var persit_config= argo.persit_config || {
 					continuous: true,
-					ttl: 33 * 24 * 3600 * 1000,//keep 33 days 
-					expiredInterval: 24 * 3600 * 1000,//clear buffer every day
+					ttl: 33 * 24 * 3600 * 1000, //keep 99 days 
+					expiredInterval: 24 * 3600 * 1000,//clear buffer every day for those >ttl
+					forgiveParseErrors: true //in case parse error
 				};
 				_Storage.initSync(persit_config);
 			}
