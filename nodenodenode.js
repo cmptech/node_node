@@ -62,7 +62,7 @@ module.exports = this_argo => {
 		}
 		rt.app=argo.app=__dirname + '/egapp.js';//load the default egapp ...
 	}
-	var appModule=require(argo.app)({argo});
+	var appModule=rt.appModule=require(argo.app)({argo});
 
 	////////////////////////////////////////////////////////// HTTP
 	var http_host=argo.server_host||argo.http_host||argo.h||'localhost',http_port=argo.server_port||argo.http_port||argo.p;
