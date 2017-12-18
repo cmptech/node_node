@@ -7,7 +7,14 @@ module.exports=function(Application){
 
 	function _getJob(id){
 		var Job=getSessionVar('Jobs.'+id);
-		if(Job && Job.logic && Job.logic.Preempt_Promise && "function"==typeof(Job.logic.Preempt_Promise)){
+		var _flag_found_job = false;
+		if(Job && Job.logic){
+			var _Preempt_q = Job.logic.Preempt_Promise || Job.Preempt_q;
+			if(_Preempt_q && 'function'==typeof(_Preempt_q)){
+				_flag_found_job=true;
+			}
+		}
+		if(_flag_found_job){
 			//skip, no need to require again
 		}else{
 			var job_module=tryRequire(argo.approot + '/job_'+id,true);
@@ -64,43 +71,42 @@ module.exports=function(Application){
 					}else{
 						var job=_getJob(job_id);
 						var _sleepTime=1111;//default
-
-						//TODO improve the brackets below later...
 						if(job.sts!='disabled'){
 							if(job.logic){
-								if(job.logic.Preempt_Promise && "function"==typeof(job.logic.Preempt_Promise)){
+								var _Preempt_q = job.logic.Preempt_Promise || job.Preempt_q;
+								if(_Preempt_q && 'function'==typeof(_Preempt_q)){
 									try{
-										job.logic.Preempt_Promise()
+										_Preempt_q()
 											.fail(err=>{
 												if(err && err.STS) return err;
 												return {STS:"KO",err}
 											})
 											.done(rst=>{
-											if(rst){
-												if(rst.type){
-													process.stdout.write(rst.type);
+												if(rst){
+													if(rst.type){
+														process.stdout.write(rst.type);
+													}
+													if(rst.sleepTime){
+														_sleepTime=rst.sleepTime;
+													}
+													if(rst.STS!="OK"){
+														logger.log("WARNING _job_preempt ",job_id,".done(KO!!)",rst);
+													}
+												}else{
+													logger.log("DEBUG job("+job_id+").preempt empty rst?",rst);
 												}
-												if(rst.sleepTime){
-													_sleepTime=rst.sleepTime;
-												}
-												if(rst.STS!="OK"){
-													logger.log("WARNING _job_preempt ",job_id,".done(KO!!)",rst);
-												}
-											}else{
-												logger.log("DEBUG job("+job_id+").preempt empty rst?",rst);
-											}
-											setTimeout(()=>{
-												_job_preempt();
-											},_sleepTime);
-										});
+												setTimeout(()=>{
+													_job_preempt();
+												},_sleepTime);
+											});
 									}catch(ex){
-										logger.log('ERROR when Preempt_Promise() =',ex);
+										logger.log('ERROR when _Preempt_q() =',ex);
 										setTimeout(()=>{
 											_job_preempt();
 										},_sleepTime);
 									}
 								}else{
-									logger.log('ERROR no job.logic.Preempt_Promise for ',job_id,job);
+									logger.log('ERROR no job.logic._Preempt_q for ',job_id,job);
 									setTimeout(()=>{
 										_job_preempt();
 									},_sleepTime);

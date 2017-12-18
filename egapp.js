@@ -355,10 +355,11 @@ module.exports = function(opts)
 									if(debug>1){
 										logger.log('Quit JobMgr....',rst);
 									}
-									if(_logic.Quit_Promise){
-										_logic.Quit_Promise().done(()=>{
+									var _quit_q = _logic.Quit_q || _logic.Quit_Promise;//@_Promise is @deprecated
+									if(_quit_q){
+										_quit_q().done(()=>{
 											if(debug>1){
-												logger.log('_logic.Quit_Promise() after _jobmgr._EntryPromise.done.');
+												logger.log('_quit_q() after _jobmgr._EntryPromise.done.');
 											}
 										});
 									}else{
@@ -423,7 +424,8 @@ module.exports = function(opts)
 					}
 					else if( m!='VOID' && (mm=m.match(/^(.*)/)) ){
 						var nn=mm[1]+'Promise';//try find XXXXPromise() first
-						if(typeof(_logic[nn])!='function') nn=mm[1]+'_Promise';//then try find XXXX_Promise()
+						if(typeof(_logic[nn])!='function') nn=mm[1]+'_q';//then try find XXXX_q()
+						if(typeof(_logic[nn])!='function') nn=mm[1]+'_Promise';//then try find XXXX_Promise() @deprecated...
 						if(typeof(_logic[nn])!='function') nn=mm[1];// fall back to try XXXX()
 						if(typeof(_logic[nn])!='function'){
 							if(typeof(_logic['call'])=='function'){//try .call() if any
@@ -524,7 +526,8 @@ module.exports = function(opts)
 					}
 					else if( m!='VOID' && (mm=m.match(/^(.*)/)) ){
 						var nn=mm[1]+'Promise';//try find XXXXPromise() first
-						if(typeof(_logic[nn])!='function') nn=mm[1]+'_Promise';//then try find XXXX_Promise()
+						if(typeof(_logic[nn])!='function') nn=mm[1]+'_q';//then try find XXXX_q()
+						if(typeof(_logic[nn])!='function') nn=mm[1]+'_Promise';//then try find XXXX_Promise() @deprecated
 						if(typeof(_logic[nn])!='function') nn=mm[1];// fall back to try XXXX()
 						if(typeof(_logic[nn])!='function'){
 							if(typeof(_logic['call'])=='function'){//try .call() if any
