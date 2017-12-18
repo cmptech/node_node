@@ -28,7 +28,9 @@ const s2o=function(s){try{return(new Function('return '+s))()}catch(ex){}};
 // get the 1st match if any:
 function getRegExpMatch(re,s){ var ra=re.exec(s); return (ra && ra[1]) ? ra[1] : "" }
 function trim(s){ return s?s.trim():"" }
-function copy_o2o(o1,o2){for(var k in o2){o1[k]=o2[k]}return o1}
+//function copy_o2o(o1,o2){for(var k in o2){o1[k]=o2[k]}return o1}
+//function copy_o2o(o1,o2,o3){var o=o3||o2;for(var k in o){o1[k]=o2[k]}return o1}
+function copy_o2o(o1,o2,o3){for(var k in (o3||o2)){o1[k]=o2[k]}return o1}
 
 const Q=require('q');
 
