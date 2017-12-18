@@ -9,7 +9,7 @@ module.exports=function(Application){
 		var Job=getSessionVar('Jobs.'+id);
 		var _flag_found_job = false;
 		if(Job && Job.logic){
-			var _Preempt_q = Job.logic.Preempt_Promise || Job.Preempt_q;
+			var _Preempt_q = Job.logic.Preempt_Promise || Job.logic.Preempt_q;
 			if(_Preempt_q && 'function'==typeof(_Preempt_q)){
 				_flag_found_job=true;
 			}
@@ -73,7 +73,7 @@ module.exports=function(Application){
 						var _sleepTime=1111;//default
 						if(job.sts!='disabled'){
 							if(job.logic){
-								var _Preempt_q = job.logic.Preempt_Promise || job.Preempt_q;
+								var _Preempt_q = job.logic.Preempt_Promise || job.logic.Preempt_q;
 								if(_Preempt_q && 'function'==typeof(_Preempt_q)){
 									try{
 										_Preempt_q()
