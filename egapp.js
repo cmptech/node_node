@@ -414,7 +414,7 @@ module.exports = function(opts)
 					var maxTimeout=o.timeout || 30000;
 					if(m=='GetVersion'){
 						setTimeout(()=>{
-							dfr.resolve({STS:"OK",app_version:Application.version,app_startTime:Application.startTime});
+							dfr.resolve({STS:"OK",app_version:Application.version,app_startTime:Application.startTime,logic_version:_logic.version,logic_startTime:_logic.startTime,jobmgr_version:_jobmgr.version,jobmgr_startTime:_jobmgr.startTime});
 						},11);
 					}else if(m=='LogicReload'){
 						Application.TriggerReload();
