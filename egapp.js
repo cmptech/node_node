@@ -135,7 +135,8 @@ module.exports = function(opts)
 				_Storage=require('node-persist');
 				var persit_config= argo.persit_config || {
 					continuous: true,
-					ttl: 33 * 24 * 3600 * 1000, //keep 99 days 
+					//ttl: 33 * 24 * 3600 * 1000, //keep 99 days 
+					ttl: false,//keep forever...
 					expiredInterval: 24 * 3600 * 1000,//clear buffer every day for those >ttl
 					forgiveParseErrors: true //in case parse error
 				};
@@ -396,6 +397,7 @@ module.exports = function(opts)
 	Application.startTime=getTimeStr();
 	Application.TriggerReload();
 
+	//TODO 根据 argo.cluster 参数判断是否要做 多进程化. 这时影响到主进程、次进程的逻辑，包括下面的 handle*()系列，以及全局的变量也完全不能在appModule.Application中直接共享了（要用函数封装)
 	var appModule = {
 		handleHttp:function(req,res){
 			var tmA=new Date();
@@ -499,6 +501,7 @@ module.exports = function(opts)
 				});
 		}//handleHttp
 
+		//TODO 跟handle*() 系列合并
 		,handleIPC:function(conn){
 			var tmA=new Date();
 			var tmAgetTime=getTimeStr(tmA);

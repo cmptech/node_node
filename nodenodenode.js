@@ -185,7 +185,7 @@ module.exports = this_argo => {
 	////////////////////////////////////////////////////////// TCP/IPC
 	var ipc_path=argo.ipc_path;
 	if(ipc_path){
-		if(!appModule.handleHttp) throw new Exception('appModule.handleHttp is not defined.');
+		if(!appModule.handleIPC) throw new Exception('appModule.handleIPC is not defined.');
 
 		if (process.platform ==='win32'){
 			ipc_path = ipc_path.replace(/^\//, '');
