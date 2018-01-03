@@ -27,41 +27,47 @@ module.exports = this_argo => {
 
 	var rt={STS:'OK'};
 
-	//command line parameters by node
+	//command line parameters override
 	copy_o2o(argo,argv2o(process.argv));
 
-	//nwjs
+	//special patch for NWJS
 	if (process.versions.nw) {
+		//safe check
 		if('undefined'==typeof nw){
 			logger.log({process_version:process.versions});
 			throw new Error('nw is undefined while process.versions.nw?');
 		}
+		//nwjs command line parameters override
 		copy_o2o(argo,argv2o(nw.App.argv));
+		//
 		rt.is_nwjs=true;
+		//tune logger
 		logger={log:function(){
 			try{console.log(util.format.apply(null, arguments))}catch(ex){
 				console.log.apply(console,arguments);}
 		}};
 	}
 
+	//caller override
 	if(!isEmpty(this_argo)) copy_o2o(argo,this_argo);
 
 	if(argo.debug) debug=argo.debug;
 
-	//global
-	if(typeof(global)!='undefined'){
-		rt.has_global=has_global=true;
-	}
+	//.has_global
+	if(typeof(global)!='undefined') rt.has_global=has_global=true; 
 
-	//thread pool for uv_queue_work()
+	//for uv_queue_work()
 	process.env.UV_THREADPOOL_SIZE = argo.UV_THREADPOOL_SIZE || 126;
 
+	//app module
 	if(!argo.app){
 		if(!argo.approot){//must specify the approot for default egapp
 			rt.approot=argo.approot=process.cwd();
 		}
 		rt.app=argo.app=__dirname + '/egapp.js';//load the default egapp ...
 	}
+
+	//hook the the app module to the rt
 	var appModule=rt.appModule=require(argo.app)({argo});
 
 	////////////////////////////////////////////////////////// HTTP
@@ -168,7 +174,7 @@ module.exports = this_argo => {
 			try{
 				ws_server.listen(ws_port);
 				flag_daemon=true;
-				rt.flag_ws=true;
+				rt.flag_ws=rt.flag_websocket=true;
 			}catch(ex){
 				if(debug>0){
 					logger.log('failed to start ws_server on '+ws_host+':'+ws_port);
@@ -182,7 +188,7 @@ module.exports = this_argo => {
 		}
 	}
 
-	////////////////////////////////////////////////////////// TCP/IPC
+	////////////////////////////////////////////////////////// IPC
 	var ipc_path=argo.ipc_path;
 	if(ipc_path){
 		if(!appModule.handleIPC) throw new Exception('appModule.handleIPC is not defined.');
@@ -193,21 +199,40 @@ module.exports = this_argo => {
 			ipc_path = `\\\\.\\pipe\\${ipc_path}`;
 		}
 		
-		rt.net_server=require('net').createServer(appModule.handleIPC);
+		rt.ipc_server=require('net').createServer(appModule.handleIPC);//handleIPC: conn=>{}
 		try{
-			rt.net_server.listen(ipc_path,()=>{logger.log('net listen on '+ipc_path)});
-			rt.flag_http=true;
+			rt.ipc_server.listen(ipc_path,()=>{logger.log('net listen on '+ipc_path)});
+			rt.flag_ipc=true;
 			flag_daemon=true;
 		}catch(ex){
 			if(debug>0){
-				logger.log('failed to start net_server on '+ipc_path);
+				logger.log('failed to start ipc_server on '+ipc_path);
 				logger.log(ex);
 			}
 		}
 	}
 
-	////////////////////////////////////////////////////////// UDP
+	////////////////////////////////////////////////////////// TCP
+	var tcp_path=argo.tcp_path;
+	if(tcp_path){
+		if(!appModule.handleTCP) throw new Exception('appModule.handleTCP is not defined.');
 
+		rt.tcp_server=require('net').createServer(appModule.handleTCP);//handleIPC: conn=>{}
+		try{
+			rt.tcp_server.listen(tcp_path,()=>{logger.log('net listen on '+tcp_path)});
+			rt.flag_tcp=true;
+			flag_daemon=true;
+		}catch(ex){
+			if(debug>0){
+				logger.log('failed to start tcp_server on '+tcp_path);
+				logger.log(ex);
+			}
+		}
+	}
+
+	////////////////////////////////////////////////////////// UDP TODO (https://nodejs.org/api/dgram.html) => handleUDP
+
+	////////////////////////////////////////////////////////// rt
 	rt.flag_daemon=flag_daemon;
 	return rt;
 };
