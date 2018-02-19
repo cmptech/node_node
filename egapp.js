@@ -382,15 +382,12 @@ module.exports = function(opts)
 	});
 	Object.defineProperty(Application, 'JobMgr',{
 		get: function() { return _jobmgr; },
-		//set: function(newValue) { _logic = newValue; }
 	});
 	Object.defineProperty(Application, 'Logic',{
 		get: function() { return _logic; },
-		//set: function(newValue) { _logic = newValue; }
 	});
 	Object.defineProperty(Application, 'logic',{
 		get: function() { return _logic; },
-		//set: function(newValue) { _logic = newValue; }
 	});
 
 	Application.version=getTimeStr(fs.statSync(__filename).mtime);
@@ -442,12 +439,20 @@ module.exports = function(opts)
 										_logicModule.startTime=getTimeStr()
 									}
 								}
-								cc =_logicModule(Application);
+								//NEW INSTANCE
+								cc =_logicModule(Application,
+									//Server Object:
+									{
+										req,res,session:req.session,c,m
+										//TODO _s later
+									}
+								);
 							}
 						}
 						if(!cc){
-							logger.log('TODO Not found c.m=',c,m);
-							cc = _logic;
+							if(debug>2)
+							logger.log('WARNING: using default logicModule for not found c.m=',c,m);
+							cc = _logic;//NOTES: for case that only $m.api, a very-default module is applied, which DO NOT support 'Server' yet !!!
 						}
 						if(typeof(cc[nn])!='function') nn=mm[1]+'_q';//then try find XXXX_q()
 						if(typeof(cc[nn])!='function') nn=mm[1]+'_Promise';//then try find XXXX_Promise() @deprecated...
@@ -468,7 +473,7 @@ module.exports = function(opts)
 						}else{
 							try{
 								var result = cc[nn](p);
-								if(!result) return Q({STS:"KO",errmsg:" "+nn+" returns nothing?"})
+								if(!result) return Q({STS:"KO",errcode:999,errmsg:" "+nn+" returns nothing?"})
 								if(Q.isPromise(result)) return result;
 								else return Q(result);
 								//return cc[nn](p) || Q({STS:"KO",errmsg:" "+nn+" returns nothing?"});
