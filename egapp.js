@@ -399,11 +399,14 @@ module.exports = function(opts)
 
 	//TODO 根据 argo.cluster 参数判断是否要做 多进程化. 这时影响到主进程、次进程的逻辑，包括下面的 handle*()系列，以及全局的变量也完全不能在appModule.Application中直接共享了（要用函数封装)
 	var appModule = {
+		//o2s,s2o,argo,logger,tryRequire,
+		Application,
 		handleHttp:function(req,res){
 			var tmA=new Date();
 			var tmAgetTime=getTimeStr(tmA);
 			var rt={STS:'KO'};
-			var m="VOID";
+			var m=null;
+			var c=null;
 			if(debug>1){
 				logger.log(`${tmAgetTime} ${tmA} [`);
 			}
@@ -411,40 +414,64 @@ module.exports = function(opts)
 				.then(o=>{
 					if(!o)throw new Error('empty request?');
 					var dfr=Q.defer();
-					m=o.m||"VOID";
-					var mm;
+					m=o.m||req.m||"";
+					c=o.c||req.c||"";
+					var p=o.p||req.p||o;
+					var cc=null,mm=m;
 					var maxTimeout=o.timeout || 30000;
-					if(m=='GetVersion'){
+					if(!c && m=='GetVersion'){
 						setTimeout(()=>{
 							dfr.resolve({STS:"OK",app_version:Application.version,app_startTime:Application.startTime,logic_version:_logic.version,logic_startTime:_logic.startTime,jobmgr_version:_jobmgr.version,jobmgr_startTime:_jobmgr.startTime});
 						},11);
-					}else if(m=='LogicReload'){
+					}else if(!c && m=='LogicReload'){
 						Application.TriggerReload();
 						setTimeout(()=>{
 							dfr.resolve({STS:"OK",app_version:Application.version,app_startTime:Application.startTime,logic_version:_logic.version,logic_startTime:_logic.startTime,jobmgr_version:_jobmgr.version,jobmgr_startTime:_jobmgr.startTime});
 						},2222);//sleep a little while to let prev App finish reload...
 					}
-					else if( m!='VOID' && (mm=m.match(/^(.*)/)) ){
+					else if( mm=m.match(/^(.*)/) ){
 						var nn=mm[1]+'Promise';//try find XXXXPromise() first
-						if(typeof(_logic[nn])!='function') nn=mm[1]+'_q';//then try find XXXX_q()
-						if(typeof(_logic[nn])!='function') nn=mm[1]+'_Promise';//then try find XXXX_Promise() @deprecated...
-						if(typeof(_logic[nn])!='function') nn=mm[1];// fall back to try XXXX()
-						if(typeof(_logic[nn])!='function'){
-							if(typeof(_logic['call'])=='function'){//try .call() if any
+						if(c){
+							var _logicModule=tryRequire(approot+'/_api/'+c,true);
+							if(_logicModule){
+								if(_logicModule.__filename){
+									if(!_logicModule.version){
+										_logicModule.version=getTimeStr(fs.statSync(_logicModule.__filename).mtime)
+									}
+									if(!_logicModule.startTime){
+										_logicModule.startTime=getTimeStr()
+									}
+								}
+								cc =_logicModule(Application);
+							}
+						}
+						if(!cc){
+							logger.log('TODO Not found c.m=',c,m);
+							cc = _logic;
+						}
+						if(typeof(cc[nn])!='function') nn=mm[1]+'_q';//then try find XXXX_q()
+						if(typeof(cc[nn])!='function') nn=mm[1]+'_Promise';//then try find XXXX_Promise() @deprecated...
+						if(typeof(cc[nn])!='function') nn=mm[1];// fall back to try XXXX()
+						if(typeof(cc[nn])!='function'){
+							if(typeof(cc['call'])=='function'){//try .call() if any
 								try{
-									return _logic.call(mm[1],o.p) || Q({STS:"KO",errmsg:" No Return for call("+mm[1]}+")");
+									return cc.call(mm[1],p) || Q({STS:"KO",errmsg:" No Return for call("+mm[1]}+")");
 								}catch(ex){
 									rt.errmsg=''+mm[1]+'.ex='+ex;
 									dfr.resolve(rt);
 								}
 							}else{
-								rt.errcode=666;
-								rt.errmsg='Unknown '+mm[1]+'()';
+								rt.errcode=667;
+								rt.errmsg='Unknown '+c+'.'+mm[1]+'() '+((c&&m)?(req.url||req.originalUrl):'');
 								dfr.resolve(rt);
 							}
 						}else{
 							try{
-								return _logic[nn](o.p) || Q({STS:"KO",errmsg:" "+nn+" returns nothing?"});
+								var result = cc[nn](p);
+								if(!result) return Q({STS:"KO",errmsg:" "+nn+" returns nothing?"})
+								if(Q.isPromise(result)) return result;
+								else return Q(result);
+								//return cc[nn](p) || Q({STS:"KO",errmsg:" "+nn+" returns nothing?"});
 							}catch(ex){
 								rt.errmsg=''+mm[1]+'.ex='+ex;
 								dfr.resolve(rt);
@@ -477,7 +504,13 @@ module.exports = function(opts)
 								res.write(o2s(rst));
 							}else{
 								rt=rst||{};
-								if(!rt.STS) rt.STS="KO";
+								if(!rt.STS){
+									rt.STS="KO";
+									if(!rt.errmsg){
+										rt.errmsg='Unknown result for m='+mm;
+										if(!rt.rst) rt.rst = rst;//for debug?
+									}
+								}
 								res.write(o2s(rt));
 							}
 						}
@@ -501,7 +534,7 @@ module.exports = function(opts)
 				});
 		}//handleHttp
 
-		//TODO 跟handle*() 系列合并
+		//TODO 跟handle*() 系列合并!!
 		,handleIPC:function(conn){
 			var tmA=new Date();
 			var tmAgetTime=getTimeStr(tmA);
@@ -515,6 +548,7 @@ module.exports = function(opts)
 					if(!o)throw new Error('empty request?');
 					var dfr=Q.defer();
 					m=o.m||"VOID";
+					var p=o.p||req.p||o;
 					var mm;
 					var maxTimeout=o.timeout || 30000;
 					if(m=='GetVersion'){
@@ -535,7 +569,7 @@ module.exports = function(opts)
 						if(typeof(_logic[nn])!='function'){
 							if(typeof(_logic['call'])=='function'){//try .call() if any
 								try{
-									return _logic.call(mm[1],o.p) || Q({STS:"KO",errmsg:" No Return for call("+mm[1]}+")");
+									return _logic.call(mm[1],p) || Q({STS:"KO",errmsg:" No Return for call("+mm[1]}+")");
 								}catch(ex){
 									rt.errmsg=''+mm[1]+'.ex='+ex;
 									dfr.resolve(rt);
@@ -547,7 +581,7 @@ module.exports = function(opts)
 							}
 						}else{
 							try{
-								return _logic[nn](o.p) || Q({STS:"KO",errmsg:" "+nn+" returns nothing?"});
+								return _logic[nn](p) || Q({STS:"KO",errmsg:" "+nn+" returns nothing?"});
 							}catch(ex){
 								rt.errmsg=''+mm[1]+'.ex='+ex;
 								dfr.resolve(rt);
