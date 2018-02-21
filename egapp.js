@@ -35,24 +35,18 @@ function copy_o2o(o1,o2,o3){for(var k in (o3||o2)){o1[k]=o2[k]}return o1}
 const Q=require('q');
 
 //TODO gzip and binary feature not yet supported... 
+
 const _streamToString=function(stream, cb){
 	var str = '';
 	stream.on('data', function(chunk){
 		str += chunk;
 	}).on('end', function(){
-		if("undefined"==typeof(s2o)){
-			cb({STS:"KO",errmsg:"s2o is undefined"});
-		}
-		try{
-			cb(s2o(str)||{STS:"KO",errmsg:"Unable to understand s:"+str});
-		}catch(ex){
-			cb({STS:"KO",errmsg:""+ex,str:str});
-		}
+		cb(str)
 	}).on('error', function(err){
-		cb({STS:"KO",errmsg:""+err,str:str});
+		cb(''+err);
 	})
 	;
-};
+}
 
 function StreamToStringPromise(stream,maxTimeout){
 	if(!maxTimeout)maxTimeout=3333;
@@ -60,8 +54,14 @@ function StreamToStringPromise(stream,maxTimeout){
 	setTimeout(()=>{
 		dfr.reject({STS:"KO",errmsg:"Timeout("+(maxTimeout/1000)+" sec) when PromiseStreamToString()"});
 	},maxTimeout);
-	_streamToString(stream,function(rst){
-		dfr.resolve(rst);
+	_streamToString(stream,function(s){
+		if(s){
+			dfr.resolve(s2o(s)||{STS:"KO",errmsg:"Unable to understand s",s});
+		}else{
+			//empty request?
+			//dfr.resolve({STS:"OK",errmsg:'empty request'});
+			dfr.resolve({});
+		}
 	});
 	return dfr.promise;
 }
@@ -409,11 +409,12 @@ module.exports = function(opts)
 			}
 			StreamToStringPromise(req)
 				.then(o=>{
-					if(!o)throw new Error('empty request?');
+					//if(!o)throw new Error('empty request?');
 					var dfr=Q.defer();
 					m=o.m||req.m||"";
 					c=o.c||req.c||"";
 					var p=o.p||req.p||o;
+					copy_o2o(p,req.query)
 					var cc=null,mm=m;
 					var maxTimeout=o.timeout || 30000;
 					if(!c && m=='GetVersion'){
@@ -460,7 +461,7 @@ module.exports = function(opts)
 						if(typeof(cc[nn])!='function'){
 							if(typeof(cc['call'])=='function'){//try .call() if any
 								try{
-									return cc.call(mm[1],p) || Q({STS:"KO",errmsg:" No Return for call("+mm[1]}+")");
+									return (cc.call(mm[1],p) || Q({STS:"KO",errmsg:" No Return for call("+mm[1]}+")"))
 								}catch(ex){
 									rt.errmsg=''+mm[1]+'.ex='+ex;
 									dfr.resolve(rt);
@@ -476,8 +477,8 @@ module.exports = function(opts)
 								if(!result) return Q({STS:"KO",errcode:999,errmsg:" "+nn+" returns nothing?"})
 								if(Q.isPromise(result)) return result;
 								else return Q(result);
-								//return cc[nn](p) || Q({STS:"KO",errmsg:" "+nn+" returns nothing?"});
 							}catch(ex){
+								logger.log(''+mm[1]+'.ex.stack='+ex.stack);
 								rt.errmsg=''+mm[1]+'.ex='+ex;
 								dfr.resolve(rt);
 							}
@@ -492,32 +493,18 @@ module.exports = function(opts)
 					},maxTimeout);
 					return dfr.promise;
 				}).fail((err)=>{
-					if(debug>0){
-						logger.log('fail.err=',err);
+					var rt = err;
+					if(!isEmpty(rt)){
+						if(!rt.STS) rt.STS='KO';
+						if(!rt.errmsg)rt.errmsg=''+err;
 					}
-					if(!rt.errmsg)rt.errmsg=""+err;
-					//if(!rt.STS) rt.STS="KO";
-					return err;//then back to done()
+					return rt;
 				}).done(rst=>{
 					try{
-						if(rst==null){
-							res.write('');
+						if(typeof(rst)=='string'){
+							res.write(rst);
 						}else{
-							if(typeof(rst)=='string'){
-								res.write(rst);
-							}else if(typeof(rst)=='array'){
-								res.write(o2s(rst));
-							}else{
-								rt=rst||{};
-								if(!rt.STS){
-									rt.STS="KO";
-									if(!rt.errmsg){
-										rt.errmsg='Unknown result for m='+mm;
-										if(!rt.rst) rt.rst = rst;//for debug?
-									}
-								}
-								res.write(o2s(rt));
-							}
+							res.write(o2s(rst));
 						}
 					}catch(ex){
 						if(debug>0){
@@ -539,7 +526,7 @@ module.exports = function(opts)
 				});
 		}//handleHttp
 
-		//TODO 跟handle*() 系列合并!!
+		//TODO 跟handle*() 系列合并?
 		,handleIPC:function(conn){
 			var tmA=new Date();
 			var tmAgetTime=getTimeStr(tmA);
@@ -550,10 +537,11 @@ module.exports = function(opts)
 			}
 			StreamToStringPromise(conn)
 				.then(o=>{
-					if(!o)throw new Error('empty request?');
+					//if(!o)throw new Error('empty request?');
 					var dfr=Q.defer();
 					m=o.m||"VOID";
 					var p=o.p||req.p||o;
+					//copy_o2o(p,req.query)
 					var mm;
 					var maxTimeout=o.timeout || 30000;
 					if(m=='GetVersion'){
