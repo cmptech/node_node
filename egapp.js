@@ -111,13 +111,13 @@ module.exports = function(opts)
 	}
 	const Session={};
 	var _Storage=null;//for persist() only, don't use at app...
-	var _logic={},_jobmgr={};
+	var _defaultLogicModule={},_jobmgr={};
 
 	var Application={
 		argo,logger,Q,fs,os,Session,server_id
 		,isEmpty,getTimeStr,o2s,s2o,isOK,isAllOK,copy_o2o,trim,getRegExpMatch,tryRequire,quit
 
-		,getLogic(){ return _logic; }//@deprecated, using .Logic directly (coz the getter/setter is done through defineProperty)
+		,getLogic(){ return _defaultLogicModule; }//@deprecated, using .Logic directly (coz the getter/setter is done through defineProperty)
 		,getJobMgr(){ return _jobmgr; }//@deprecated, see above.
 
 		// like Session.XXXX but with pathing (xxx.yyy) feature and auto {} fill in
@@ -206,7 +206,7 @@ module.exports = function(opts)
 			}
 			var _func=function(){
 				delete _jobmgr;
-				delete _logic;
+				delete _defaultLogicModule;
 				var jobmgrModule=null;
 				if(argo.jobmgr){
 					jobmgrModule=tryRequire(approot+'/'+argo.jobmgr,true);
@@ -261,17 +261,17 @@ module.exports = function(opts)
 							logicModule.startTime=getTimeStr()
 						}
 					}
-					_logic=logicModule(Application);
-					if(_logic.__filename){
-						if(!_logic.version){
-							_logic.version=getTimeStr(fs.statSync(_logic.__filename).mtime)
+					_defaultLogicModule=logicModule(Application);
+					if(_defaultLogicModule.__filename){
+						if(!_defaultLogicModule.version){
+							_defaultLogicModule.version=getTimeStr(fs.statSync(_defaultLogicModule.__filename).mtime)
 						}
-						if(!_logic.startTime){
-							_logic.startTime=getTimeStr()
+						if(!_defaultLogicModule.startTime){
+							_defaultLogicModule.startTime=getTimeStr()
 						}
 					}
 				}
-				if(isEmpty(_logic)){
+				if(isEmpty(_defaultLogicModule)){
 					if(debug>0){
 						logger.log('nodenodenode WARNING: not found logic module',{logicModule,approot});
 					}
@@ -279,53 +279,53 @@ module.exports = function(opts)
 					if(debug>0){
 						logger.log('nodenodenode WARNING: not found jobmgr module');
 					}
-				}else{//both _logic & _jobmgr
+				}else{//both _defaultLogicModule & _jobmgr
 
-					if(_logic.handleExit){
+					if(_defaultLogicModule.handleExit){
 						appModule.handleExit=function(x){
-							_logic.handleExit(x);
+							_defaultLogicModule.handleExit(x);
 						}
 					}
 
-					if(_logic.handleUncaughtException){
+					if(_defaultLogicModule.handleUncaughtException){
 						appModule.handleUncaughtException=function(err){
 							if(debug>0){
-								logger.log('app.handleUncaughtException() FWD _logic.handleUncaughtException()',err);
+								logger.log('app.handleUncaughtException() FWD _defaultLogicModule.handleUncaughtException()',err);
 							}
-							_logic.handleUncaughtException(err);
+							_defaultLogicModule.handleUncaughtException(err);
 						}
 					}
 
-					if(_logic.handleSIGINT){
+					if(_defaultLogicModule.handleSIGINT){
 						//ctrl-c
 						process.on('SIGINT', function(){
-							_logic.handleSIGINT();
+							_defaultLogicModule.handleSIGINT();
 						});
 					}
 
-					if(_logic.handleUncaughtException){
+					if(_defaultLogicModule.handleUncaughtException){
 						process.on('uncaughtException', err=>{
 							appModule.handleUncaughtException(err);
 						});
 					}				
 
-					if(_logic.handleExit){
+					if(_defaultLogicModule.handleExit){
 						process.on("exit",function(x){
-							_logic.handleExit(x);
+							_defaultLogicModule.handleExit(x);
 						});
 					}
 
-					if(_logic.handleSIGTERM){
+					if(_defaultLogicModule.handleSIGTERM){
 						process.on('SIGTERM', function(){
-							_logic.handleSIGTERM();
+							_defaultLogicModule.handleSIGTERM();
 						});
 					}
 
 					if(debug>1){
-						logger.log("_logic.version=",_logic.version);
+						logger.log("_defaultLogicModule.version=",_defaultLogicModule.version);
 					}
-					Session.ServerStartTime=_logic.startTime;
-					Session.LogicVersion=_logic.version;
+					Session.ServerStartTime=_defaultLogicModule.startTime;
+					Session.LogicVersion=_defaultLogicModule.version;
 
 					if(debug>1){
 						logger.log("_jobmgr.version=",_jobmgr.version);
@@ -356,7 +356,7 @@ module.exports = function(opts)
 									if(debug>1){
 										logger.log('Quit JobMgr....',rst);
 									}
-									var _quit_q = _logic.Quit_q || _logic.Quit_Promise;//@_Promise is @deprecated
+									var _quit_q = _defaultLogicModule.Quit_q || _defaultLogicModule.Quit_Promise;//@_Promise is @deprecated
 									if(_quit_q){
 										_quit_q().done(()=>{
 											if(debug>1){
@@ -384,10 +384,10 @@ module.exports = function(opts)
 		get: function() { return _jobmgr; },
 	});
 	Object.defineProperty(Application, 'Logic',{
-		get: function() { return _logic; },
+		get: function() { return _defaultLogicModule; },
 	});
 	Object.defineProperty(Application, 'logic',{
-		get: function() { return _logic; },
+		get: function() { return _defaultLogicModule; },
 	});
 
 	Application.version=getTimeStr(fs.statSync(__filename).mtime);
@@ -415,22 +415,22 @@ module.exports = function(opts)
 					c=o.c||req.c||"";
 					var p=o.p||req.p||o;
 					copy_o2o(p,req.query)
-					var cc=null,mm=m;
+					var cc=null,mm=null;
+					mm=m;
 					var maxTimeout=o.timeout || 30000;
 					if(!c && m=='GetVersion'){
 						setTimeout(()=>{
-							dfr.resolve({STS:"OK",app_version:Application.version,app_startTime:Application.startTime,logic_version:_logic.version,logic_startTime:_logic.startTime,jobmgr_version:_jobmgr.version,jobmgr_startTime:_jobmgr.startTime});
+							dfr.resolve({STS:"OK",app_version:Application.version,app_startTime:Application.startTime,logic_version:_defaultLogicModule.version,logic_startTime:_defaultLogicModule.startTime,jobmgr_version:_jobmgr.version,jobmgr_startTime:_jobmgr.startTime});
 						},11);
 					}else if(!c && m=='LogicReload'){
 						Application.TriggerReload();
 						setTimeout(()=>{
-							dfr.resolve({STS:"OK",app_version:Application.version,app_startTime:Application.startTime,logic_version:_logic.version,logic_startTime:_logic.startTime,jobmgr_version:_jobmgr.version,jobmgr_startTime:_jobmgr.startTime});
+							dfr.resolve({STS:"OK",app_version:Application.version,app_startTime:Application.startTime,logic_version:_defaultLogicModule.version,logic_startTime:_defaultLogicModule.startTime,jobmgr_version:_jobmgr.version,jobmgr_startTime:_jobmgr.startTime});
 						},2222);//sleep a little while to let prev App finish reload...
 					}
 					else if( mm=m.match(/^(.*)/) ){
-						var nn=mm[1]+'Promise';//try find XXXXPromise() first
 						if(c){
-							var _logicModule=tryRequire(approot+'/_api/'+c,true);
+							var _logicModule=Application.loadApiCls ? Application.loadApiCls(c) : tryRequire(approot+'/_api/'+c,true);
 							if(_logicModule){
 								if(_logicModule.__filename){
 									if(!_logicModule.version){
@@ -440,21 +440,19 @@ module.exports = function(opts)
 										_logicModule.startTime=getTimeStr()
 									}
 								}
-								//NEW INSTANCE
 								cc =_logicModule(Application,
 									//Server Object:
 									{
 										req,res,session:req.session,c,m
-										//TODO _s later
+										//TODO _s later?
 									}
 								);
 							}
 						}
-						if(!cc){
-							if(debug>2)
-							logger.log('WARNING: using default logicModule for not found c.m=',c,m);
-							cc = _logic;//NOTES: for case that only $m.api, a very-default module is applied, which DO NOT support 'Server' yet !!!
+						if(!cc){//using default logic module
+							cc = _defaultLogicModule;//NOTES: for case that only $m.api, a very-default module is applied, which DO NOT support 'Server' yet !!!
 						}
+						var nn=mm[1]+'Promise';//try find XXXXPromise() first
 						if(typeof(cc[nn])!='function') nn=mm[1]+'_q';//then try find XXXX_q()
 						if(typeof(cc[nn])!='function') nn=mm[1]+'_Promise';//then try find XXXX_Promise() @deprecated...
 						if(typeof(cc[nn])!='function') nn=mm[1];// fall back to try XXXX()
@@ -463,6 +461,7 @@ module.exports = function(opts)
 								try{
 									return (cc.call(mm[1],p) || Q({STS:"KO",errmsg:" No Return for call("+mm[1]}+")"))
 								}catch(ex){
+									rt.errcode=668;
 									rt.errmsg=''+mm[1]+'.ex='+ex;
 									dfr.resolve(rt);
 								}
@@ -472,31 +471,34 @@ module.exports = function(opts)
 								dfr.resolve(rt);
 							}
 						}else{
-							try{
-								var result = cc[nn](p);
-								if(!result) return Q({STS:"KO",errcode:999,errmsg:" "+nn+" returns nothing?"})
-								if(Q.isPromise(result)) return result;
-								else return Q(result);
-							}catch(ex){
-								logger.log(''+mm[1]+'.ex.stack='+ex.stack);
-								rt.errmsg=''+mm[1]+'.ex='+ex;
-								dfr.resolve(rt);
-							}
+							var result = cc[nn](p);
+							if(!result) return Q({STS:"KO",errcode:999,errmsg:" "+nn+" returns nothing?"})
+							if(Q.isPromise(result)) return result;
+							else return Q(result);
 						}
 					}else{
 						rt.errcode=666;
-						rt.errmsg='Unknown m='+mm;
+						rt.errmsg='Unknown m='+m;
 						dfr.resolve(rt);
 					}
 					setTimeout(()=>{
 						dfr.reject({STS:"KO",errmsg:"Timeout("+(maxTimeout/1000)+" sec) when invoke "+m});
 					},maxTimeout);
 					return dfr.promise;
-				}).fail((err)=>{
-					var rt = err;
-					if(!isEmpty(rt)){
+				}).fail(err=>{
+					var rt=err;
+					if(err && (err.message || err.code || err.stack))//若为错误则调整一下 errmsg && errcode...
+					{
+						if(err.stack) logger.log('DEBUG:.'+m+'().err.stack='+err.stack,',err.code=',err.code,'err.message=',err.message);
 						if(!rt.STS) rt.STS='KO';
-						if(!rt.errmsg)rt.errmsg=''+err;
+						if(!rt.errmsg){
+							if(err.message){
+								rt.errmsg=err.message;
+							}else{
+								rt.errmsg=''+err;//try whatever...
+							}
+						}
+						if(!rt.errcode && err.errno) rt.errcode=err.errno;
 					}
 					return rt;
 				}).done(rst=>{
@@ -526,109 +528,9 @@ module.exports = function(opts)
 				});
 		}//handleHttp
 
-		//TODO 跟handle*() 系列合并?
+		//TODO to merge with handleHttp
 		,handleIPC:function(conn){
-			var tmA=new Date();
-			var tmAgetTime=getTimeStr(tmA);
-			var rt={STS:'KO'};
-			var m="VOID";
-			if(debug>1){
-				logger.log(`${tmAgetTime} ${tmA} [`);
-			}
-			StreamToStringPromise(conn)
-				.then(o=>{
-					//if(!o)throw new Error('empty request?');
-					var dfr=Q.defer();
-					m=o.m||"VOID";
-					var p=o.p||req.p||o;
-					//copy_o2o(p,req.query)
-					var mm;
-					var maxTimeout=o.timeout || 30000;
-					if(m=='GetVersion'){
-						setTimeout(()=>{
-							dfr.resolve({STS:"OK",app_version:Application.version,app_startTime:Application.startTime});
-						},11);
-					}else if(m=='LogicReload'){
-						Application.TriggerReload();
-						setTimeout(()=>{
-							dfr.resolve({STS:"OK",app_version:Application.version,app_startTime:Application.startTime,logic_version:_logic.version,logic_startTime:_logic.startTime,jobmgr_version:_jobmgr.version,jobmgr_startTime:_jobmgr.startTime});
-						},2222);//sleep a little while to let prev App finish reload...
-					}
-					else if( m!='VOID' && (mm=m.match(/^(.*)/)) ){
-						var nn=mm[1]+'Promise';//try find XXXXPromise() first
-						if(typeof(_logic[nn])!='function') nn=mm[1]+'_q';//then try find XXXX_q()
-						if(typeof(_logic[nn])!='function') nn=mm[1]+'_Promise';//then try find XXXX_Promise() @deprecated
-						if(typeof(_logic[nn])!='function') nn=mm[1];// fall back to try XXXX()
-						if(typeof(_logic[nn])!='function'){
-							if(typeof(_logic['call'])=='function'){//try .call() if any
-								try{
-									return _logic.call(mm[1],p) || Q({STS:"KO",errmsg:" No Return for call("+mm[1]}+")");
-								}catch(ex){
-									rt.errmsg=''+mm[1]+'.ex='+ex;
-									dfr.resolve(rt);
-								}
-							}else{
-								rt.errcode=666;
-								rt.errmsg='Unknown '+mm[1]+'()';
-								dfr.resolve(rt);
-							}
-						}else{
-							try{
-								return _logic[nn](p) || Q({STS:"KO",errmsg:" "+nn+" returns nothing?"});
-							}catch(ex){
-								rt.errmsg=''+mm[1]+'.ex='+ex;
-								dfr.resolve(rt);
-							}
-						}
-					}else{
-						rt.errcode=666;
-						rt.errmsg='Unknown m='+mm;
-						dfr.resolve(rt);
-					}
-					setTimeout(()=>{
-						dfr.reject({STS:"KO",errmsg:"Timeout("+(maxTimeout/1000)+" sec) when invoke "+m});
-					},maxTimeout);
-					return dfr.promise;
-				}).fail((err)=>{
-					if(debug>0){
-						logger.log('fail.err=',err);
-					}
-					if(!rt.errmsg)rt.errmsg=""+err;
-					//if(!rt.STS) rt.STS="KO";
-					return err;//then back to done()
-				}).done(rst=>{
-					try{
-						if(rst==null){
-							conn.write('');
-						}else{
-							if(typeof(rst)=='string'){
-								conn.write(rst);
-							}else if(typeof(rst)=='array'){
-								conn.write(o2s(rst));
-							}else{
-								rt=rst||{};
-								if(!rt.STS) rt.STS="KO";
-								conn.write(o2s(rt));
-							}
-						}
-					}catch(ex){
-						if(debug>0){
-							logger.log('fail conn.write() at done(), ex=',ex);
-						}
-					}
-					try{
-						conn.end();
-					}catch(ex){
-						if(debug>0){
-							logger.log('fail conn.end() at done(), ex=',ex);
-						}
-					}
-					var tmZ=rt.tmZ=new Date();
-					var tmZgetTime=getTimeStr(tmZ);
-					if(debug>1){
-						logger.log(`] ${m} ${tmAgetTime} ${tmZgetTime}`);
-					}
-				});
+			throw new Error('handleIPC() is waiting for rewriting');
 		}//handleIPC
 
 		//TODO !!!
