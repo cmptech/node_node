@@ -486,7 +486,8 @@ module.exports = function(opts)
 					},maxTimeout);
 					return dfr.promise;
 				}).fail(err=>{
-					var rt=err;
+					//var rt=err;
+					var rt={};
 					if(err && (err.message || err.code || err.stack))//若为错误则调整一下 errmsg && errcode...
 					{
 						if(err.stack) logger.log('DEBUG:.'+m+'().err.stack='+err.stack,',err.code=',err.code,'err.message=',err.message);
