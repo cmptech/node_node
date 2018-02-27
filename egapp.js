@@ -467,7 +467,8 @@ module.exports = function(opts)
 								}
 							}else{
 								rt.errcode=667;
-								rt.errmsg='Unknown '+c+'.'+mm[1]+'() '+((c&&m)?(req.url||req.originalUrl):'');
+								//rt.errmsg='Unknown '+c+'.'+mm[1]+'() '+((c&&m)?(req.url||req.originalUrl):'');
+								rt.errmsg='Unknown '+((c&&m)?(req.url||req.originalUrl):'');
 								dfr.resolve(rt);
 							}
 						}else{
