@@ -500,7 +500,10 @@ module.exports = function(opts)
 								rt.errmsg=''+err;//try whatever...
 							}
 						}
-						if(!rt.errcode && err.errno) rt.errcode=err.errno;
+						if(!rt.errcode && err.errcode) rt.errcode=err.errcode;
+						//if(!rt.errno && err.errno) rt.errno=err.errno;
+						if(!rt.errcode) rt.errcode=9999;//Unknow errcode for fail()
+						//if(!rt.errno) rt.errno=-1;
 					}
 					return rt;
 				}).done(rst=>{
@@ -508,6 +511,7 @@ module.exports = function(opts)
 						if(typeof(rst)=='string'){
 							res.write(rst);
 						}else{
+							if(rst.STS=="OK" && !rst.errcode) rst.errcode=0;
 							res.write(o2s(rst));
 						}
 					}catch(ex){
