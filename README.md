@@ -18,3 +18,4 @@ build api server in few seconds ... bumptiously!
 
 * TCP/IPC/UDP is WIP(work-in-progress)
 * Examples more
+* To elegantize
