@@ -440,7 +440,7 @@ module.exports = function(opts)
 										_logicModule.startTime=getTimeStr()
 									}
 								}
-								cc =_logicModule(Application,
+								cc =new _logicModule(Application,
 									//Server Object:
 									{
 										req,res,session:req.session,c,m
