@@ -34,8 +34,6 @@ function copy_o2o(o1,o2,o3){for(var k in (o3||o2)){o1[k]=o2[k]}return o1}
 
 const Q=require('q');
 
-//TODO gzip and binary feature not yet supported... 
-
 const _streamToString=function(stream, cb){
 	var str = '';
 	stream.on('data', function(chunk){
@@ -114,12 +112,43 @@ module.exports = function(opts)
 	var _defaultLogicModule={},_jobmgr={};
 
 	var Application={
-		argo,logger,Q,fs,os,Session,server_id
-		,isEmpty,getTimeStr,o2s,s2o,isOK,isAllOK,copy_o2o,trim,getRegExpMatch,tryRequire,quit
+		argo,Q,fs,os//quick objects
+		,server_id 
+		//short tool functions:
+		,isEmpty,getTimeStr,o2s,s2o,isOK,isAllOK,copy_o2o,trim,getRegExpMatch,tryRequire
 
+		//logger related:
+		,logger
+		,quicklog(){
+			var c=0;
+			var f=null;
+			var a=[];
+			for(var k in arguments){
+				var v = arguments[k];
+				if(c==0){
+					f=v;
+				}else{
+					a.push(v)
+				}
+				c++;
+			}
+			if(!f)throw new Error('quicklog(filename, ....)');
+			var s=getTimeStr() +" "+ util.format.apply(null, arguments) + '\n';
+			fs.appendFile(approot + '/' + f + '.log', s, function(err) {
+				if(err) logger.log('quicklog()',err)
+			});
+		}
+		,devlog(){
+			var s=getTimeStr() +" "+ util.format.apply(null, arguments) + '\n';
+			var filename = approot+"/"+server_id+".dev.log";
+			fs.appendFile(filename, s, function(err) {if(err) throw err;});
+		}
+		
+		,quit//for suicide
 		,getLogic(){ return _defaultLogicModule; }//@deprecated, using .Logic directly (coz the getter/setter is done through defineProperty)
 		,getJobMgr(){ return _jobmgr; }//@deprecated, see above.
 
+		,Session//Memory Session for single-instance-app only...
 		// like Session.XXXX but with pathing (xxx.yyy) feature and auto {} fill in
 		,getSessionVar(){
 			var pathOrKey=arguments[0]||"";
@@ -172,30 +201,6 @@ module.exports = function(opts)
 				}
 			}
 			return r;
-		}
-		,quicklog(){
-			var c=0;
-			var f=null;
-			var a=[];
-			for(var k in arguments){
-				var v = arguments[k];
-				if(c==0){
-					f=v;
-				}else{
-					a.push(v)
-				}
-				c++;
-			}
-			if(!f)throw new Error('quicklog(filename, ....)');
-			var s=getTimeStr() +" "+ util.format.apply(null, arguments) + '\n';
-			fs.appendFile(approot + '/' + f + '.log', s, function(err) {
-				if(err) logger.log('quicklog()',err)
-			});
-		}
-		,devlog(){
-			var s=getTimeStr() +" "+ util.format.apply(null, arguments) + '\n';
-			var filename = approot+"/"+server_id+".dev.log";
-			fs.appendFile(filename, s, function(err) {if(err) throw err;});
 		}
 		,TriggerReload(){
 			var ttt=0;
@@ -392,11 +397,9 @@ module.exports = function(opts)
 
 	Application.version=getTimeStr(fs.statSync(__filename).mtime);
 	Application.startTime=getTimeStr();
-	Application.TriggerReload();
+	Application.TriggerReload();//init
 
-	//TODO 根据 argo.cluster 参数判断是否要做 多进程化. 这时影响到主进程、次进程的逻辑，包括下面的 handle*()系列，以及全局的变量也完全不能在appModule.Application中直接共享了（要用函数封装)
 	var appModule = {
-		//o2s,s2o,argo,logger,tryRequire,
 		Application,
 		handleHttp:function(req,res){
 			var tmA=new Date();
@@ -444,7 +447,7 @@ module.exports = function(opts)
 									//Server Object:
 									{
 										req,res,session:req.session,c,m
-										//TODO _s later?
+										//TODO _s/GET/POST/REQUEST later...
 									}
 								);
 							}
@@ -539,7 +542,7 @@ module.exports = function(opts)
 			throw new Error('handleIPC() is waiting for rewriting');
 		}//handleIPC
 
-		//TODO !!!
+		//TODO to merge with handleHttp
 		,handleWebSocket(s,conn){
 			if(debug>2){
 				logger.log('handleWebSocket.s=',s);
