@@ -75,7 +75,8 @@ module.exports = this_argo => {
 	var http_host=argo.server_host||argo.http_host||argo.h||'localhost',http_port=argo.server_port||argo.http_port||argo.p;
 	if(http_port){
 		if(!appModule.handleHttp) throw new Exception('appModule.handleHttp is not defined.');
-		rt.http_server=require('http').createServer(appModule.handleHttp);
+		//rt.http_server=require('http').createServer( appModule.handleHttp );
+		rt.http_server=require('http').createServer( (req,res)=>{ res.setHeader('Access-Control-Allow-Origin','*');return appModule.handleHttp(req,res) });
 		try{
 			rt.http_server.listen(http_port,http_host,()=>{logger.log('http listen on ',http_host,':',http_port)});
 			rt.flag_http=true;
