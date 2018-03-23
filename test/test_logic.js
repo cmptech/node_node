@@ -15,9 +15,20 @@ module.exports=function(Application){
 		},111);
 		return Q(rt);
 	}
+
+	function GetVersion_q(param){
+		return {
+			STS:'OK',
+			mtime:getTimeStr(fs.statSync(__filename).mtime),
+			server_id,
+			now:getTimeStr(),
+			param,
+		};
+	}
 	
 	return {
 		__filename
+		,GetVersion_q
 		,handleSIGINT(){
 			Quit_Promise(1).done(()=>{
 				logger.log('Quit for SIGINT/ctrl-c');

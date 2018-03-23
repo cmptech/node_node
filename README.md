@@ -8,7 +8,7 @@ build api server in few seconds ... bumptiously!
 	protocol(http || https || ws || memory || ipc || ...) => <app module> => [logic + jobmgr]
 ```
 
-* 'egapp.js' and egjobmgr.js are written to demostrate how to build an app with nodenodenode
+* egapp.js and egjobmgr.js are written to demostrate how to build an app with nodenodenode
 
 # TEST
 
@@ -16,5 +16,5 @@ build api server in few seconds ... bumptiously!
 
 # TODO
 
-* TCP/IPC/UDP is WIP(work-in-progress)
+* TCP/IPC/UDP/SSL is WIP(work-in-progress)
 * Examples more
