@@ -513,6 +513,8 @@ module.exports = function(opts)
 					try{
 						if(typeof(rst)=='string'){
 							res.write(rst);
+						}else if( true === rst ){
+							//do nothing if return a really true.
 						}else{
 							if(rst.STS=="OK" && !rst.errcode) rst.errcode=0;
 							res.write(o2s(rst));
