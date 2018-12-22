@@ -1,8 +1,12 @@
 /*
 node -e "console.log(require('nodenodenode')())" /jobs="['Health']"
 node -e "console.log(require('./nodenodenode')())" /jobs="['Health']"
+node nodenodenode /jobs="['Health']" /ws_port=3333 /debug=2 /logic=eglogic
 
 node -e "require('./nodenodenode')()" /jobs="['Health']" /ws_port=3333 /debug=2 /logic=eglogic
+
+# refer to CmpApiServer if a express enhanced version needed
+
 */
 
 module.exports = Application=>{

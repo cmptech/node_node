@@ -1,4 +1,4 @@
-//DEPS: npm install nodenodenode moment-timezone q node-persist
+//egapp deps: npm install nodenodenode moment-timezone q node-persist
 var debug=0;
 const util = require('util');
 const moment = require('moment-timezone');//for datetime

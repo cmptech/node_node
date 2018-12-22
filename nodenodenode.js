@@ -24,7 +24,7 @@ var argo={};
 
 var flag_daemon=false;
 
-module.exports = this_argo => {
+var nodenodenode = this_argo => {
 
 	var rt={STS:'OK'};
 
@@ -62,13 +62,13 @@ module.exports = this_argo => {
 
 	//app module
 	if(!argo.app){
-		if(!argo.approot){//must specify the approot for default egapp
+		if(!argo.approot){
 			rt.approot=argo.approot=process.cwd();
 		}
 		rt.app=argo.app=__dirname + '/egapp.js';//load the default egapp ...
 	}
 
-	//hook the the app module to the rt
+	//hook the the app module
 	var appModule=rt.appModule=require(argo.app)({argo});
 
 	////////////////////////////////////////////////////////// HTTP
@@ -76,7 +76,10 @@ module.exports = this_argo => {
 	if(http_port){
 		if(!appModule.handleHttp) throw new Exception('appModule.handleHttp is not defined.');
 		//rt.http_server=require('http').createServer( appModule.handleHttp );
-		rt.http_server=require('http').createServer( (req,res)=>{ res.setHeader('Access-Control-Allow-Origin','*');return appModule.handleHttp(req,res) });
+		rt.http_server=require('http').createServer( (req,res)=>{
+			res.setHeader('Access-Control-Allow-Origin','*');//tmp hack, improves later
+			return appModule.handleHttp(req,res)
+		});
 		try{
 			rt.http_server.listen(http_port,http_host,()=>{logger.log('http listen on ',http_host,':',http_port)});
 			rt.flag_http=true;
@@ -234,7 +237,18 @@ module.exports = this_argo => {
 
 	////////////////////////////////////////////////////////// UDP TODO (https://nodejs.org/api/dgram.html) => handleUDP
 
+
 	////////////////////////////////////////////////////////// rt
 	rt.flag_daemon=flag_daemon;
 	return rt;
 };
+
+do{
+	if (typeof(require)!="undefined" && typeof(module)!="undefined"){
+		if(require.main===module){
+			nodenodenode();
+			continue;
+		}
+		module.exports = nodenodenode;
+	}
+}while(0);

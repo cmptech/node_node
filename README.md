@@ -1,21 +1,22 @@
 # WTF
 
-build api server in few seconds ... bumptiously!
+tiny api server ... bumptiously!
 
 # DESIGN
 
 ```
-	protocol(http || https || ws || memory || ipc || ...) => <app module> => [logic + jobmgr]
+	protocol(http || https || ws || memory || ipc || ...)
+		=> <app module>
+		=> [logic + jobmgr]
 ```
 
-* egapp.js and egjobmgr.js are written to demostrate how to build an app with nodenodenode
+* [egapp, egjobmgr, eglogic, job_Health] are written to demostrate how to build an app with nodenodenode
 
 # TEST
 
-* test/*.js for quick reference...
+eg.sh
 
 # TODO
 
 * TCP/IPC/UDP/SSL is WIP(work-in-progress)
-* Examples more
-* To elegantize
+* To elegantize more
