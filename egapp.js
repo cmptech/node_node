@@ -1,10 +1,17 @@
+//Example App Module
 //egapp deps: npm install nodenodenode moment-timezone q node-persist
-var debug=0;
+var debug_level=0;
 const util = require('util');
-const moment = require('moment-timezone');//for datetime
-moment.tz.setDefault("Asia/Hong_Kong");
+var moment = null;//require('moment-timezone');//for datetime
 var approot=__dirname;//default
 const getTimeStr=function(dt,fmt){
+	if(!moment){
+		//tryRequire('moment-timezone') || 
+		moment = require('moment-timezone');
+		//if(moment){
+		//}
+		moment.tz.setDefault("Asia/Hong_Kong");
+	}
 	if(!dt)dt=new Date();
 	if(!fmt)fmt='YYYY-MM-DD HH:mm:ss.SSS';
 	return moment(dt).format(fmt);
@@ -47,7 +54,7 @@ const _streamToString=function(stream, cb){
 }
 
 function StreamToStringPromise(stream,maxTimeout){
-	if(!maxTimeout)maxTimeout=3333;
+	if(!maxTimeout)maxTimeout=30000;
 	var dfr=Q.defer();
 	setTimeout(()=>{
 		dfr.reject({STS:"KO",errmsg:"Timeout("+(maxTimeout/1000)+" sec) when PromiseStreamToString()"});
@@ -72,7 +79,7 @@ function tryRequire(mmm,fff){
 		}
 		return require(mmm);
 	}catch(ex){
-		if(debug>2) logger.log("! tryRequire("+mmm+").ex=",ex);
+		if(debug_level>2) logger.log("! tryRequire("+mmm+").ex=",ex);
 		return null;
 	};
 }
@@ -83,8 +90,8 @@ var SegfaultHandler=null;
 module.exports = function(opts)
 {
 	var argo=opts.argo||{};
-	if(argo.debug>=0){
-		debug=argo.debug;
+	if(argo.debug_level>=0){
+		debug_level=argo.debug_level;
 	}
 	if(opts.logger) logger=opts.logger;
 	else logger={ log:loggerOverride };//override the logger.log to add time indicator at the beginning
@@ -161,6 +168,7 @@ module.exports = function(opts)
 		//simple persist (dont' use at heavy scene)
 		,persist(){
 			if(!_Storage){
+				//TODO make own IO as persist soon...
 				_Storage=require('node-persist');
 				var persit_config= s2o(argo.persit_config) || {
 					continuous: true,
@@ -277,11 +285,11 @@ module.exports = function(opts)
 					}
 				}
 				if(isEmpty(_defaultLogicModule)){
-					if(debug>0){
+					if(debug_level>0){
 						logger.log('nodenodenode WARNING: not found logic module',{logicModule,approot});
 					}
 				}else if(isEmpty(_jobmgr)){
-					if(debug>0){
+					if(debug_level>0){
 						logger.log('nodenodenode WARNING: not found jobmgr module');
 					}
 				}else{//both _defaultLogicModule & _jobmgr
@@ -294,7 +302,7 @@ module.exports = function(opts)
 
 					if(_defaultLogicModule.handleUncaughtException){
 						appModule.handleUncaughtException=function(err){
-							if(debug>0){
+							if(debug_level>0){
 								logger.log('app.handleUncaughtException() FWD _defaultLogicModule.handleUncaughtException()',err);
 							}
 							_defaultLogicModule.handleUncaughtException(err);
@@ -326,45 +334,45 @@ module.exports = function(opts)
 						});
 					}
 
-					if(debug>1){
+					if(debug_level>1){
 						logger.log("_defaultLogicModule.version=",_defaultLogicModule.version);
 					}
 					Session.ServerStartTime=_defaultLogicModule.startTime;
 					Session.LogicVersion=_defaultLogicModule.version;
 
-					if(debug>1){
+					if(debug_level>1){
 						logger.log("_jobmgr.version=",_jobmgr.version);
 					}
 					Session.JobMgrVersion=_jobmgr.version;
 
 					setTimeout(()=>{
-						if(debug>1){
+						if(debug_level>1){
 							logger.log('_jobmgr._EntryPromise()[');
 						}
 						_jobmgr._EntryPromise()
 							.fail(err=>{
-								if(debug>0){
+								if(debug_level>0){
 									logger.log('_jobmgr._EntryPromise.fail.err=',err);
 								}
 								return err;//to .done()
 							})
 							.done(rst=>{
-								if(debug>1){
+								if(debug_level>1){
 									logger.log(']_jobmgr._EntryPromise()');
 									logger.log('DEBUG _jobmgr._EntryPromise.done()',rst);
 								}
 								if(rst && rst.toReload){
-									if(debug>1){
+									if(debug_level>1){
 										logger.log('Reload JobMgr....');
 									}
 								}else{
-									if(debug>1){
+									if(debug_level>1){
 										logger.log('Quit JobMgr....',rst);
 									}
 									var _quit_q = _defaultLogicModule.Quit_q || _defaultLogicModule.Quit_Promise;//@_Promise is @deprecated
 									if(_quit_q){
 										_quit_q().done(()=>{
-											if(debug>1){
+											if(debug_level>1){
 												logger.log('_quit_q() after _jobmgr._EntryPromise.done.');
 											}
 										});
@@ -382,8 +390,8 @@ module.exports = function(opts)
 		}//TriggerReload()
 	};
 
-	Object.defineProperty(Application, 'debug',{
-		get: function() { return debug; },
+	Object.defineProperty(Application, 'debug_level',{
+		get: function() { return debug_level; },
 	});
 	Object.defineProperty(Application, 'JobMgr',{
 		get: function() { return _jobmgr; },
@@ -402,16 +410,19 @@ module.exports = function(opts)
 	var appModule = {
 		Application,
 		handleHttp:function(req,res){
+			res.setHeader('Access-Control-Allow-Origin','*');//tmp hack, improves later
 			var tmA=new Date();
 			var tmAgetTime=getTimeStr(tmA);
 			var rt={STS:'KO'};
 			var m=null;
 			var c=null;
-			if(debug>1){
-				logger.log(`${tmAgetTime} ${tmA} [`);
+			if(debug_level>1){
+				//logger.log(`${tmAgetTime} ${tmA} [`);
+				logger.log(`${tmA} [`);
 			}
 			StreamToStringPromise(req)
 				.then(o=>{
+					var _url = req.url||req.originalUrl;
 					//if(!o)throw new Error('empty request?');
 					var dfr=Q.defer();
 					m=o.m||req.m||"";
@@ -431,7 +442,7 @@ module.exports = function(opts)
 							dfr.resolve({STS:"OK",app_version:Application.version,app_startTime:Application.startTime,logic_version:_defaultLogicModule.version,logic_startTime:_defaultLogicModule.startTime,jobmgr_version:_jobmgr.version,jobmgr_startTime:_jobmgr.startTime});
 						},2222);//sleep a little while to let prev App finish reload...
 					}
-					else if( mm=m.match(/^(.*)/) ){
+					else if( mm=m.match(/^(.+)/) ){
 						if(c){
 							var _logicModule=Application.loadApiCls ? Application.loadApiCls(c) : tryRequire(approot+'/_api/'+c,true);
 							if(_logicModule){
@@ -471,7 +482,8 @@ module.exports = function(opts)
 							}else{
 								rt.errcode=667;
 								//rt.errmsg='Unknown '+c+'.'+mm[1]+'() '+((c&&m)?(req.url||req.originalUrl):'');
-								rt.errmsg='Unknown '+((c&&m)?(req.url||req.originalUrl):'');
+								//rt.errmsg='Unknown '+((c&&m)?(req.url||req.originalUrl):'');
+								rt.errmsg='Unknown '+c+"."+m;
 								dfr.resolve(rt);
 							}
 						}else{
@@ -481,9 +493,18 @@ module.exports = function(opts)
 							else return Q(result);
 						}
 					}else{
-						rt.errcode=666;
-						rt.errmsg='Unknown m='+m;
-						dfr.resolve(rt);
+						try {
+							if("/"==_url) _url = "/index.html";
+							var raw = fs.createReadStream(__dirname + _url);
+							raw.on('error', (err)=>dfr.reject(err));
+							raw.on('end', ()=>dfr.resolve(true));
+							raw.pipe(res);
+						} catch (err) {
+							logger.log(err);
+							rt.errcode=666;
+							rt.errmsg='Unknown '+_url;
+							dfr.resolve(rt);
+						}
 					}
 					setTimeout(()=>{
 						dfr.reject({STS:"KO",errmsg:"Timeout("+(maxTimeout/1000)+" sec) when invoke "+m});
@@ -513,6 +534,8 @@ module.exports = function(opts)
 					try{
 						if(typeof(rst)=='string'){
 							res.write(rst);
+						}else if( null === rst ){
+							//do nothing if return a really null.
 						}else if( true === rst ){
 							//do nothing if return a really true.
 						}else{
@@ -520,33 +543,35 @@ module.exports = function(opts)
 							res.write(o2s(rst));
 						}
 					}catch(ex){
-						if(debug>0){
+						if(debug_level>0){
 							logger.log('fail res.write() at done(), ex=',ex);
 						}
 					}
 					try{
 						res.end();
 					}catch(ex){
-						if(debug>0){
+						if(debug_level>0){
 							logger.log('fail res.end() at done(), ex=',ex);
 						}
 					}
 					var tmZ=rt.tmZ=new Date();
 					var tmZgetTime=getTimeStr(tmZ);
-					if(debug>1){
-						logger.log(`] ${m} ${tmAgetTime} ${tmZgetTime}`);
+					if(debug_level>1){
+						//logger.log(`] ${m} ${tmAgetTime} ${tmZgetTime}`);
+						logger.log(`] ${m} ${tmZgetTime}`);
 					}
 				});
 		}//handleHttp
 
-		//TODO to merge with handleHttp
+		//TODO to merge with handleHttp !!!
 		,handleIPC:function(conn){
-			throw new Error('handleIPC() is waiting for rewriting');
+			//throw new Error('handleIPC() is waiting for rewriting...');
+			conn.write("{\"errmsg\":\"TODO\"}");
 		}//handleIPC
 
 		//TODO to merge with handleHttp
 		,handleWebSocket(s,conn){
-			if(debug>2){
+			if(debug_level>2){
 				logger.log('handleWebSocket.s=',s);
 			}
 			conn.sendText(s);
