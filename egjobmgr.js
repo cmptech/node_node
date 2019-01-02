@@ -136,6 +136,7 @@ module.exports=function(Application){
 	if(argo.jobs){
 		JobsArr=s2o(argo.jobs);
 	}
+	if(JobsArr && JobsArr.length>0)
 	logger.log('JobsArr=',JobsArr);
 
 	var _reload_flag=false;

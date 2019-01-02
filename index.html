@@ -1,1 +1,40 @@
-index.html
+<html>
+	<head>
+		<meta content="text/html;charset=utf-8" http-equiv="Content-Type">
+		<meta content="utf-8" http-equiv="encoding">
+	</head>
+	<body>
+		index.html
+		<!--
+		<script src="weblib/src.mg.json.js"></script>
+		-->
+		<script src="weblib/q.js"></script>
+		<script src="weblib/src.ajaxq.js" comment="ajax@q.js"></script>
+		<script>
+			function s2o(s){try{return (new Function('return '+s))()}catch(ex){}}
+function o2s(o){return JSON.stringify(o)}
+function copy_o2o(o1,o2,o3){var o=o3||o2;for(var k in o){o1[k]=o2[k]}return o1}
+function getQueryVar(sVar){
+	return unescape(window.location.search.replace(new RegExp("^(?:.*[&\\?]" + escape(sVar).replace(/[\.\+\*]/g, "\\$&") + "(?:\\=([^&]*))?)?.*$", "i"), "$1"));
+}
+function getSID(){
+	return getQueryVar('_s');
+}
+function getQueryStr(){
+	return (''+location.search).replace(/^\?/g,"");
+}
+			function ajaxqq(api,param){
+				return ajaxq(api+'?'+getQueryStr(),o2s(param))
+					.fail(function(e){console.log(api+'.err='+e)})
+					.then(function(s){return s2o(s)||{STS:"KO",errmsg:s}})
+			}
+			function test_post(){
+				ajaxqq('',{m:'GetVersion'}).then(function(o){
+					alert(o2s(o));
+					console.log(o);
+				})
+			}
+		</script>
+		<input type="button" value="test" onclick="test_post()"/>
+	</body>
+</html>

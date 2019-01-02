@@ -496,8 +496,13 @@ module.exports = function(opts)
 						try {
 							if("/"==_url) _url = "/index.html";
 							var raw = fs.createReadStream(__dirname + _url);
-							raw.on('error', (err)=>dfr.reject(err));
+							raw.on('error', (err)=>{
+								logger.log(err);
+								dfr.reject({STS:"KO",message:_url})
+							});
 							raw.on('end', ()=>dfr.resolve(true));
+							//TODO
+							//res.writeHead(200, { "content-type": "text/plain" });
 							raw.pipe(res);
 						} catch (err) {
 							logger.log(err);
