@@ -5,6 +5,7 @@
 	</head>
 	<body>
 		index.html
+		<img src="favicon.ico"/>
 		<!--
 		<script src="weblib/src.mg.json.js"></script>
 		-->
@@ -28,13 +29,21 @@ function getQueryStr(){
 					.fail(function(e){console.log(api+'.err='+e)})
 					.then(function(s){return s2o(s)||{STS:"KO",errmsg:s}})
 			}
-			function test_post(){
+			function test_post1(){
 				ajaxqq('',{m:'GetVersion'}).then(function(o){
 					alert(o2s(o));
 					console.log(o);
 				})
 			}
+			function test_post2(){
+				ajaxqq('',{c:'ApiTest',m:'GetRand'}).then(function(o){
+					alert(o2s(o));
+					console.log(o);
+				})
+			}
 		</script>
-		<input type="button" value="test" onclick="test_post()"/>
+		<br/>
+		<input type="button" value="test1" onclick="test_post1()"/><br/>
+		<input type="button" value="test2" onclick="test_post2()"/><br/>
 	</body>
 </html>

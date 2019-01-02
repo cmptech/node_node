@@ -501,7 +501,7 @@ module.exports = function(opts)
 								dfr.reject({STS:"KO",message:_url})
 							});
 							raw.on('end', ()=>dfr.resolve(true));
-							//TODO
+							//TODO mime type
 							//res.writeHead(200, { "content-type": "text/plain" });
 							raw.pipe(res);
 						} catch (err) {
@@ -536,8 +536,10 @@ module.exports = function(opts)
 					}
 					return rt;
 				}).done(rst=>{
+					//logger.log(typeof(rst),rst);
 					try{
 						if(typeof(rst)=='string'){
+							res.writeHead(200, { "content-type": "text/plain" });
 							res.write(rst);
 						}else if( null === rst ){
 							//do nothing if return a really null.
@@ -545,6 +547,7 @@ module.exports = function(opts)
 							//do nothing if return a really true.
 						}else{
 							if(rst.STS=="OK" && !rst.errcode) rst.errcode=0;
+							res.writeHead(200, { "content-type": "text/plain" });
 							res.write(o2s(rst));
 						}
 					}catch(ex){
