@@ -14,4 +14,4 @@
 pm2 stop "test"
 pm2 delete "test"
 #pm2 start nodenodenode.js -i 2 --name "test" --watch "$PWD" -- /http_port=3333 /debug_level=2 /app=./egapp /logic=eglogic
-pm2 start nodenodenode.js -i 2 --name "test" --watch "$PWD" --ignore-watch "tmp logs" -- /http_port=3333 /app=./egapp /logic=eglogic
+pm2 start nodenodenode.js -i 0 --name "test" --watch "$PWD" --ignore-watch "tmp logs" -- /http_port=3333 /app=./egapp /logic=eglogic
