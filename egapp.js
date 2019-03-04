@@ -177,7 +177,8 @@ module.exports = function(opts)
 					//expiredInterval: 24 * 3600 * 1000,//clear buffer every day for those >ttl
 					forgiveParseErrors: true //in case parse error
 				};
-				_Storage.initSync(persit_config);
+				//_Storage.initSync(persit_config);
+				_Storage.init(persit_config);
 			}
 			var pathOrKey=arguments[0]||"";
 			var r=Session;
