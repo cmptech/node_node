@@ -68,6 +68,10 @@ var nodenodenode = this_argo => {
 			rt.approot=argo.approot=process.cwd();
 		}
 		rt.app=argo.app=__dirname + '/egapp.js';//load the default egapp ...
+	}else{
+		if(argo.approot){
+			rt.app=argo.app=argo.approot + '/' + argo.app ;
+		}
 	}
 
 	//hook the the app module

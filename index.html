@@ -2,7 +2,7 @@
 <html>
 	<head><meta charset="utf-8" /><link rel="icon" href="./favicon.ico" type="image/x-icon"/></head>
 	<body>
-		GetVersion=<div id="divGetVersion">...</div>
+		<div id="divAction">name</div>=<div id="divValue">...</div>
 		<script type="text/javascript">
 var o2s=function(o){try{return JSON.stringify(o);}catch(ex){}};
 var s2o=function(s){try{return(new Function('return '+s))()}catch(ex){}};
@@ -12,9 +12,16 @@ var s2o=function(s){try{return(new Function('return '+s))()}catch(ex){}};
 				,gets:function(url){var x=this.x();x.open('GET',url,false);x.send(null);return x.responseText;}
 				,post:function(url,func,args){this.send(url,func,'POST',args);}
 			};
-ajax.post("./",function(s){
-	document.getElementById("divGetVersion").innerHTML=s;
-},o2s({m:'GetVersion'}));
+function doAction(m){
+	document.getElementById("divAction").innerHTML=m;
+	document.getElementById("divValue").innerHTML='...';
+	ajax.post("./",function(s){
+		document.getElementById("divValue").innerHTML=s;
+	},o2s({m}));
+}
 		</script>
+<hr/>
+<button onclick="doAction('LogicReload')">LogicReload()</button>
+<button onclick="doAction('GetVersion')">GetVersion()</button>
 	</body>
 </html>
