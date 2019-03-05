@@ -2,14 +2,16 @@
 //egapp deps: npm install nodenodenode moment-timezone q node-persist
 var debug_level=0;
 const util = require('util');
-var moment = null;//require('moment-timezone');//for datetime
 var approot=__dirname;//default
-const getTimeStr=function(dt,fmt){
+
+//NOTES: fmt is not support yet...
+const getTimeStr=(dt,fmt,tz)=>(dt=dt||new Date(),(new Date(dt.getTime()+((tz===null)?0:((tz||tz===0)?tz:(-dt.getTimezoneOffset()/60)))*3600*1000)).toISOString().replace('T', ' ').substr(0, 19));
+
+//backup plan if fmt needs
+var moment = null;//require('moment-timezone');//for datetime
+const getTimeStr2=function(dt,fmt){
 	if(!moment){
-		//tryRequire('moment-timezone') || 
 		moment = require('moment-timezone');
-		//if(moment){
-		//}
 		moment.tz.setDefault("Asia/Hong_Kong");
 	}
 	if(!dt)dt=new Date();
@@ -496,7 +498,7 @@ module.exports = function(opts)
 					}else{
 						try {
 							if("/"==_url) _url = "/index.html";
-							var raw = fs.createReadStream(__dirname + _url);
+							var raw = fs.createReadStream(approot +'/'+ _url);
 							raw.on('error', (err)=>{
 								logger.log(err);
 								dfr.reject({STS:"KO",message:_url})
