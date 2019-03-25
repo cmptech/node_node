@@ -1,4 +1,4 @@
-/*
+/* Usage:
  * require('nodenodenode')() fwd req to appModule
  *        server_host/server_port => http server
  *    or  http_host/http_port     => http server
@@ -9,16 +9,17 @@
 
 const util = require('util');
 
+
 var debug_level=0;//debug_level
 
 var logger=console;//default logger
 
-function isEmpty(o,i){for(i in o){return!1}return!0}
-
-function copy_o2o(o1,o2){for(var k in o2){o1[k]=o2[k]}return o1}
+//simple o2o
+const o2o = (o1,o2)=>{for(var k in o2){o1[k]=o2[k]}return o1}
 
 //function argv2o(argv,m,mm){var rt={};for(k in argv)(m=(rt[""+k]=argv[k]).match(/^(\/|--?)([a-zA-Z0-9-_]*)="?(.*)"?$/))&&(rt[m[2]]=m[3]);return rt}
 //const argv2o=o=>o.reduce((r,e)=>(m=e.match(/^(\/|--?)([a-zA-Z0-9-_]*)="?(.*)"?$/))&&(r[m[2]]=m[3])&&r||r,{});
+//add process.argv as default
 const argv2o=a=>(a||process.argv||[]).reduce((r,e)=>((m=e.match(/^(\/|--?)([\w-]*)="?(.*)"?$/))&&(r[m[2]]=m[3]),r),{});
 
 var argo={};
@@ -29,10 +30,11 @@ var nodenodenode = this_argo => {
 
 	var rt={STS:'OK'};
 
-	//command line parameters override
-	copy_o2o(argo,argv2o(process.argv));
+	//tune argo
+	o2o(argo,argv2o());
+	o2o(argo,this_argo);
 
-	//special patch for NWJS
+	//special patch for NWJS ------------------------------------------------
 	if (process.versions.nw) {
 		//safe check
 		if('undefined'==typeof nw){
@@ -40,28 +42,24 @@ var nodenodenode = this_argo => {
 			throw new Error('nw is undefined while process.versions.nw?');
 		}
 		//nwjs command line parameters override
-		copy_o2o(argo,argv2o(nw.App.argv));
+		o2o(argo,argv2o(nw.App.argv));
 		//
 		rt.is_nwjs=true;
-		//tune logger
+		//tune logger ,NOTES: not using arrow func because arguments is not support
 		logger={log:function(){
-			try{console.log(util.format.apply(null, arguments))}catch(ex){
-				console.log.apply(console,arguments);}
+			try{console.log(util.format.apply(null, arguments))}catch(ex){console.log.apply(console,arguments);}
 		}};
 	}
 
-	//caller override
-	//if(!isEmpty(this_argo)) copy_o2o(argo,this_argo);
-	copy_o2o(argo,this_argo);
-
-	if(argo.debug_level) debug_level=argo.debug_level;
+	var {debug_level}=argo;
 
 	//.has_global
 	if(typeof(global)!='undefined') rt.has_global=has_global=true; 
 
-	//for uv_queue_work()
+	//tune for uv_queue_work()
 	process.env.UV_THREADPOOL_SIZE = argo.UV_THREADPOOL_SIZE || 126;
 
+	//NOTES $approot/$app.js
 	//app module
 	if(!argo.app){
 		if(!argo.approot){
@@ -74,7 +72,6 @@ var nodenodenode = this_argo => {
 		}
 	}
 
-	//hook the the app module
 	var appModule=rt.appModule=require(argo.app)({argo});
 
 	////////////////////////////////////////////////////////// HTTP
@@ -119,6 +116,7 @@ var nodenodenode = this_argo => {
 	////////////////////////////////////////////////////////// WEBSOCKET
 	var ws_port=argo.ws_port,ws_host=argo.ws_host||'localhost';
 	if(ws_port){
+		if(!appModule.handleWebSocket) throw new Exception('appModule.handleWebSocket is not defined.');
 		var _client_conn_a={};//pool
 		try{
 			var ws = require("nodejs-websocket");
@@ -157,7 +155,6 @@ var nodenodenode = this_argo => {
 					if(debug_level>1){
 						logger.log("on text",data_s);
 					}
-					if(!appModule.handleWebSocket) throw new Exception('appModule.handleWebSocket is not defined.');
 					appModule.handleWebSocket(data_s,conn);
 				});
 				conn.on("close", function (code, reason){
@@ -202,17 +199,13 @@ var nodenodenode = this_argo => {
 		if(!appModule.handleIPC) throw new Exception('appModule.handleIPC is not defined.');
 		if (process.platform ==='win32'){
 			ipc_path = ipc_path.replace(/^\//, '');
-			ipc_path = ipc_path.replace(/\//g, '-');
-			ipc_path = `\\\\.\\pipe\\${ipc_path}`;
-		}
-		
+				ipc_path = ipc_path.replace(/\//g, '-');
+					ipc_path = `\\\\.\\pipe\\${ipc_path}`;
+				}
+
 		rt.ipc_server=require('net').createServer(appModule.handleIPC);//handleIPC: conn=>{}
 		try{
-			//TODO
-			//return appModule.handleIPC(req,res)
-			rt.ipc_server.listen(ipc_path,()=>{
-				logger.log('net listen on '+ipc_path)
-			});
+			rt.ipc_server.listen(ipc_path,()=>{ if(debug_level>0) logger.log('net listen on '+ipc_path) });
 			rt.flag_ipc=true;
 			flag_daemon=true;
 		}catch(ex){
@@ -223,41 +216,55 @@ var nodenodenode = this_argo => {
 		}
 	}
 
-	////////////////////////////////////////////////////////// TCP PORT
-	//var tcp_port=argo.tcp_port;
-	//if(tcp_port){
-	//	if(!appModule.handleTCP) throw new Exception('appModule.handleTCP is not defined.');
+	////////////////////////////////////////////////////////// TCP
+	var tcp_port=argo.tcp_port;
+	if(tcp_port){
+		if(!appModule.handleTCP) throw new Exception('appModule.handleTCP is not defined.');
 
-	//	rt.tcp_server=require('net').createServer(appModule.handleTCP);//handleIPC: conn=>{}
-	//	try{
-	//		rt.tcp_server.listen(tcp_port,()=>{logger.log('net listen on '+tcp_port)});
-	//		rt.flag_tcp=true;
-	//		flag_daemon=true;
-	//	}catch(ex){
-	//		if(debug_level>0){
-	//			logger.log('failed to start tcp_server on '+tcp_port);
-	//			logger.log(ex);
-	//		}
-	//	}
-	//}
+		rt.tcp_server=require('net').createServer(appModule.handleTCP);//handleTCP: conn=>{}
+		try{
+			rt.tcp_server.listen(tcp_port,()=>{if(debug_level>0)logger.log('net listen on '+tcp_port)});
+			rt.flag_tcp=true;
+			flag_daemon=true;
+		}catch(ex){
+			if(debug_level>0){
+				logger.log('failed to start tcp_server on '+tcp_port);
+				logger.log(ex);
+			}
+		}
+	}
 
-	////////////////////////////////////////////////////////// UDP TODO (https://nodejs.org/api/dgram.html) => handleUDP
-
+	////////////////////////////////////////////////////////// UDP
+	//@ref https://nodejs.org/api/dgram.html
+	var udp_port=argo.udp_port;
+	if(udp_port){
+		if(!appModule.handleUDP) throw new Exception('appModule.handleUDP is not defined.');
+		const dgram = require('dgram');
+		rt.udp_server = dgram.createSocket('udp4')
+			.on('error', (err) => {
+				if(debug_level>0){
+					console.log(`udp_server error:\n${err.stack}`);
+					rt.udp_server.close();
+				}
+			})
+			.on('message', appModule.handleUDP)//(msg, rinfo) => {console.log(`udp_server got: ${msg} from ${rinfo.address}:${rinfo.port}`);}
+			.on('listening', () => {
+				if(debug_level>1){
+					const address = udp_server.address();
+					logger.log(`udp_server listening ${address.address}:${address.port}`);
+				}
+			})
+			.bind(udp_port);
+		rt.flag_udp=true;
+		flag_daemon=true;
+	}
 
 	////////////////////////////////////////////////////////// rt
-	rt.flag_daemon=flag_daemon;
+
+		rt.flag_daemon=flag_daemon;
 	return rt;
 };
 
-//do{
-//	if (typeof(require)!="undefined" && typeof(module)!="undefined"){
-//		if(require.main===module){
-//			nodenodenode();
-//			continue;
-//		}
-//		module.exports = nodenodenode;
-//	}
-//}while(0);
-
+//return in MODULE mode or execute in PROGRAM mode
 var require,module;
 (require&&module) && ( require.main==module ? nodenodenode() : (module.exports=nodenodenode) );

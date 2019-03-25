@@ -1,6 +1,6 @@
 {
 	"name": "nodenodenode",
-	"version": "0.7.4",
+	"version": "0.8.0",
 	"description": "mini app lib",
 	"main": "nodenodenode.js",
 	"repository": {
@@ -13,7 +13,5 @@
 	"author": "cmptech",
 	"license": "COMMUNISM",
 	"homepage": "https://github.com/cmptech/nodenodenode#readme",
-	"dependencies": {
-		"q": "^1.5.1"
-	}
+	"dependencies": {}
 }
