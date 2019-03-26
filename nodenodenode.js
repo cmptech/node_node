@@ -25,10 +25,7 @@ var nodenodenode = this_argo => {
 	const nameMap = { http:'Http' ,https:'Https' ,ipc:'IPC' ,tcp:'TCP' ,udp:'UDP' ,ws:'WebSocket' };
 	const createMap = {
 		http:()=>require('http').createServer()
-		,https:()=>require('https').createServer({
-			key: fs.readFileSync(argo.https_key),
-			cert: fs.readFileSync(argo.https_cert)
-		})
+		,https:()=>require('https').createServer({key: fs.readFileSync(argo.https_key),cert: fs.readFileSync(argo.https_cert)})
 		,ipc:()=>require('net').createServer()
 		,tcp:()=>require('net').createServer()
 		,udp:()=>require('dgram').createSocket('udp4')
@@ -38,26 +35,16 @@ var nodenodenode = this_argo => {
 		if(!port)return;
 		var handleEntryName = 'handle'+nameMap[type];
 		var handleEntry = appModule[handleEntryName];
-		if(!handleEntry) throw (`needs appModule.${handleEntryName}()`);
 		try{
-			if (process.platform ==='win32') {
-				port = port.replace(new RegExp("^/"),'').replace(new RegExp("/", 'g'), '-')
-				port = `\\\\.\\pipe\\${port}`;
-			}
+			if(!handleEntry) throw (`needs appModule.${handleEntryName}()`);
+			if (process.platform ==='win32') port = "\\\\.\\pipe\\"+port.replace(new RegExp("^/"),'').replace(new RegExp("/", 'g'), '-');
 			var server = rt[type+'_server'] = createMap[type]()
-				.on('error',err=>{
-					if (err.code == 'EADDRINUSE'){
-						logger.log(`${type}_server EADDRINUSE`)
-					}else logger.log(`${type}_server error:\n${err.stack}`)
-				})
+				.on('error',err=>logger.log(`${type}_server error(${err.code}):\n${err.stack}`))
 				.on('request',handleEntry)
 				.on('message',handleEntry)
 				.on('listening',()=>logger.log(`${type}_server listen on ${host}:${port}`))
 			switch(type){
-				case 'udp':
-					server.bind(port)
-					break;
-				case 'ws':
+				case 'ws'://"nodejs-websocket"
 					var _client_conn_a={};//conn pool
 					server.on('connection',function(conn){
 						var _addr=(conn.socket.remoteAddress);
@@ -76,13 +63,11 @@ var nodenodenode = this_argo => {
 						});
 					})
 				default:
-					server.listen(port,host);
+					server[type=='udp'?'bind':'listen'](port,host);
 			}
 			rt['flag_'+type]=true;
 			flag_daemon=true;
-		}catch(ex){
-			logger.log('failed to start http_server on '+host+':'+port,"\n",ex);
-		}
+		}catch(ex){ logger.log('failed to start http_server on '+host+':'+port,"\n",ex); }
 	}
 	normalHandle('http',argo.server_port||argo.http_port||argo.p,argo.server_host||argo.http_host||argo.h||'localhost');
 	normalHandle('https',argo.https_port,argo.https_host||'localhost');
@@ -90,7 +75,6 @@ var nodenodenode = this_argo => {
 	normalHandle('tcp',argo.tcp_port);
 	normalHandle('udp',argo.udp_port);
 	normalHandle('ws',argo.ws_port,argo.ws_host||'localhost');
-
 	rt.flag_daemon=flag_daemon;
 	return rt;
 };
