@@ -8,6 +8,7 @@ module.exports = function(opts)
 		}
 		//@ref https://nodejs.org/api/http.html#http_event_connection
 		,handleWeb:(req,resp)=>{
+			//TODO fwd to cmp()
 			resp.setHeader('Access-Control-Allow-Origin','*');//tmp hack, improves later
 			resp.writeHead(200, { "content-type": "text/plain" });
 			resp.write(`from testapp `+new Date());
@@ -24,6 +25,11 @@ module.exports = function(opts)
 		,handleHttp:function(req,resp){
 			logger.log(`TODO ${appname}.handleHttp()`);
 			return appModule.handleWeb(req,resp)
+		}
+		,handleWebSocket:function(s,conn){
+			//logger.log(`TODO ${appname}.handleWebSocket()`,s);
+			logger.log(s,conn.key,conn.lmt);
+			conn.sendText(JSON.stringify({pong:new Date().getTime()}))
 		}
 	}
 	return appModule

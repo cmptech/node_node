@@ -32,7 +32,7 @@ var nodenodenode = this_argo => {
 		,ipc:()=>require('net').createServer()
 		,tcp:()=>require('net').createServer()
 		,udp:()=>require('dgram').createSocket('udp4')
-		,ws:()=>require("nodejs-websocket").createServer({secure:(argo.ws_secure)?true:false})
+		,ws:()=>(ws=require("nodejs-websocket"),ws.setMaxBufferLength(20971520),ws.createServer({secure:(argo.ws_secure)?true:false}))
 	}
 	const normalHandle = (type,port,host) => {
 		if(!port)return;
@@ -59,7 +59,6 @@ var nodenodenode = this_argo => {
 					break;
 				case 'ws':
 					var _client_conn_a={};//conn pool
-					server.setMaxBufferLength(20971520);
 					server.on('connection',function(conn){
 						var _addr=(conn.socket.remoteAddress);
 						var _port=(conn.socket.remotePort);
@@ -71,7 +70,7 @@ var nodenodenode = this_argo => {
 						conn.on("error", (e)=>logger.log("ws_server.conn.error",e));
 						conn.on("text", (data_s)=>handleEntry(data_s,conn));
 						conn.on("close", function (code, reason){
-							logger.log("ws_server.close="+code+","+reason,"key="+ws_server.key);
+							logger.log("ws_server.close="+code+","+reason,"key="+_key);
 							_client_conn_a[_key]=null;
 							delete _client_conn_a[_key];
 						});
