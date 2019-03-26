@@ -1,267 +1,130 @@
-/* Usage:
- * require('nodenodenode')() fwd req to appModule
- *        server_host/server_port => http server
- *    or  http_host/http_port     => http server
- *         https_host/https_port  => https server
- *         ws_host/ws_port        => web-socket server
- *                   + ws_secure  => wss
- */
-
+//@see TEST.md for usage examples.
 const util = require('util');
-
-
 var debug_level=0;//debug_level
-
 var logger=console;//default logger
-
-//simple o2o
 const o2o = (o1,o2)=>{for(var k in o2){o1[k]=o2[k]}return o1}
-
-//function argv2o(argv,m,mm){var rt={};for(k in argv)(m=(rt[""+k]=argv[k]).match(/^(\/|--?)([a-zA-Z0-9-_]*)="?(.*)"?$/))&&(rt[m[2]]=m[3]);return rt}
-//const argv2o=o=>o.reduce((r,e)=>(m=e.match(/^(\/|--?)([a-zA-Z0-9-_]*)="?(.*)"?$/))&&(r[m[2]]=m[3])&&r||r,{});
-//add process.argv as default
 const argv2o=a=>(a||process.argv||[]).reduce((r,e)=>((m=e.match(/^(\/|--?)([\w-]*)="?(.*)"?$/))&&(r[m[2]]=m[3]),r),{});
-
 var argo={};
-
 var flag_daemon=false;
-
 var nodenodenode = this_argo => {
-
 	var rt={STS:'OK'};
-
 	//tune argo
 	o2o(argo,argv2o());
 	o2o(argo,this_argo);
-
-	//special patch for NWJS ------------------------------------------------
 	if (process.versions.nw) {
-		//safe check
-		if('undefined'==typeof nw){
-			logger.log({process_version:process.versions});
-			throw new Error('nw is undefined while process.versions.nw?');
-		}
-		//nwjs command line parameters override
-		o2o(argo,argv2o(nw.App.argv));
-		//
+		//if('undefined'==typeof nw){	throw new Error('nw is undefined while process.versions.nw?');}
+		o2o(argo,argv2o(nw.App.argv));//nwjs command line parameters override
 		rt.is_nwjs=true;
-		//tune logger ,NOTES: not using arrow func because arguments is not support
-		logger={log:function(){
-			try{console.log(util.format.apply(null, arguments))}catch(ex){console.log.apply(console,arguments);}
-		}};
 	}
-
 	var {debug_level}=argo;
-
-	//.has_global
+	logger= argo.logger || {
+		log: (debug_level>0) ? (
+			(rt.is_nwjs) ?  function(){
+				try{console.log(util.format.apply(null, arguments))}catch(ex){console.log.apply(console,arguments);}
+			} : console.log ) : (()=>{}), 
+	};
 	if(typeof(global)!='undefined') rt.has_global=has_global=true; 
-
-	//tune for uv_queue_work()
-	process.env.UV_THREADPOOL_SIZE = argo.UV_THREADPOOL_SIZE || 126;
-
-	//NOTES $approot/$app.js
-	//app module
-	if(!argo.app){
-		if(!argo.approot){
-			rt.approot=argo.approot=process.cwd();
-		}
-		rt.app=argo.app=__dirname + '/egapp.js';//load the default egapp ...
-	}else{
-		if(argo.approot){
-			rt.app=argo.app=argo.approot + '/' + argo.app ;
-		}
-	}
-
+	//optimize for uv_queue_work()
+	process.env.UV_THREADPOOL_SIZE = argo.UV_THREADPOOL_SIZE || 99;
+	//NOTES load app module from $approot/$app.js 
+	if(!argo.approot) rt.approot=argo.approot=process.cwd(); 
+	rt.app=argo.app= (argo.app) ? (argo.approot + '/' + argo.app) : (__dirname + '/egapp.js');
 	var appModule=rt.appModule=require(argo.app)({argo});
-
-	////////////////////////////////////////////////////////// HTTP
+	const nameMap = {
+		http:'Http'
+		,https:'Https'
+		,ipc:'IPC'
+		,tcp:'TCP'
+		,udp:'UDP'
+		,ws:'WebSocket'
+	};
+	const createMap = {
+		http:()=>require('http').createServer()
+		,https:()=>require('https').createServer({
+			key: fs.readFileSync(argo.https_key),
+			cert: fs.readFileSync(argo.https_cert)
+		})
+		,ipc:()=>require('net').createServer()
+		,tcp:()=>require('net').createServer()
+		,udp:()=>require('dgram').createSocket('udp4')
+		,ws:()=>require("nodejs-websocket").createServer({secure:(argo.ws_secure)?true:false})
+	}
+	const normalHandle = (type,port,host) => {
+		var handleEntryName = 'handle'+nameMap[type];
+		var handleEntry = appModule[handleEntryName];
+		if(!handleEntry) throw (`needs appModule.${handleEntryName}()`);
+		try{
+			if (process.platform ==='win32') {
+				port = port.replace(new RegExp("^/"),'').replace(new RegExp("/", 'g'), '-')
+				port = `\\\\.\\pipe\\${port}`;
+			}
+			var server = rt[type+'_server'] = createMap[type]()
+				.on('error',err=>{
+					if (err.code == 'EADDRINUSE'){
+						logger.log(`${type}_server EADDRINUSE`)
+					}else logger.log(`${type}_server error:\n${err.stack}`)
+				})
+				.on('request',handleEntry)
+				.on('message',handleEntry)
+				.on('listening',()=>logger.log(`${type}_server listen on ${host}:${port}`))
+			switch(type){
+				case 'udp':
+					server.bind(port)
+					break;
+				case 'ws':
+					var _client_conn_a={};//conn pool
+					server.setMaxBufferLength(20971520);
+					server.on('connection',function(conn){
+						//pack remote info on to the conn obj
+						var _addr=(conn.socket.remoteAddress);
+						var _port=(conn.socket.remotePort);
+						var _key=""+_addr+":"+_port;
+						logger.log("on conn "+_key);
+						conn.key=_key;
+						conn.lmt=(new Date()).getTime();
+						_client_conn_a[_key]=conn;
+						conn.on("error", function (e){
+							logger.log("ws_server.conn.error",e);
+						});
+						conn.on("text", function (data_s){
+							logger.log("on text",data_s);
+							handleEntry(data_s,conn);
+						});
+						conn.on("close", function (code, reason){
+							logger.log("ws_server.close="+code+","+reason,"key="+ws_server.key);
+							_client_conn_a[_key]=null;
+							delete _client_conn_a[_key];
+						});
+					})
+				default:
+					server.listen(port,host);
+			}
+			rt['flag_'+type]=true;
+			flag_daemon=true;
+		}catch(ex){
+			logger.log('failed to start http_server on '+host+':'+port,"\n",ex);
+		}
+	}
+	// HTTP
 	var http_host=argo.server_host||argo.http_host||argo.h||'localhost',http_port=argo.server_port||argo.http_port||argo.p;
-	if(http_port){
-		var handleHttp = appModule.handleHttp;
-		if(!handleHttp) throw new Exception('appModule.handleHttp is not defined.');
-		rt.http_server = require('http').createServer( handleHttp );
-		try{
-			rt.http_server.listen(http_port,http_host,()=>{logger.log('http listen on ',http_host,':',http_port)});
-			rt.flag_http=true;
-			flag_daemon=true;
-		}catch(ex){
-			if(debug_level>0){
-				logger.log('failed to start http_server on '+http_host+':'+http_port);
-				logger.log(ex);
-			}
-		}
-	}
-
-	////////////////////////////////////////////////////////// HTTPS
+	if(http_port) normalHandle('http',http_port,http_host); 
+	// HTTPS
 	var https_host=argo.https_host||'localhost',https_port=argo.https_port;
-	if(https_port){
-		if(!appModule.handleHttps) throw new Exception('appModule.handleHttps is not defined.');
-		var {https_key,https_cert}=argo.https_key;
-		rt.https_server=require('https').createServer({
-			key: fs.readFileSync(https_key),
-			cert: fs.readFileSync(https_cert)
-		},appModule.handleHttps);
-		try{
-			rt.https_server.listen(https_host,https_host,()=>{logger.log('https listen on ',https_host,':',https_port)});
-			flag_daemon=true;
-			rt.flag_https=true;
-		}catch(ex){
-			if(debug_level>0){
-				logger.log('failed to start https_server on '+https_host+':'+https_port);
-				logger.log(ex);
-			}
-		}
-	}
-
-	////////////////////////////////////////////////////////// WEBSOCKET
-	var ws_port=argo.ws_port,ws_host=argo.ws_host||'localhost';
-	if(ws_port){
-		if(!appModule.handleWebSocket) throw new Exception('appModule.handleWebSocket is not defined.');
-		var _client_conn_a={};//pool
-		try{
-			var ws = require("nodejs-websocket");
-			if(!ws){
-				throw new Error("nodejs-websocket module needed for .ws_port/.ws_host");
-			}
-			if(ws_port>1024){
-			}else{
-				if(debug_level>1){
-					logger.log("WARNING port < 1024");
-				}
-			}
-			if(debug_level>1){
-				logger.log("pid=",process.pid);
-			}
-			ws.setMaxBufferLength(20971520);
-			var ws_opts={};
-			if (argo.ws_secure) ws_opts.secure=true;
-			var ws_server = rt.ws_server = ws.createServer(ws_opts);
-			ws_server.on('connection',function(conn){
-				var _addr=(conn.socket.remoteAddress);
-				var _port=(conn.socket.remotePort);
-				var _key=""+_addr+":"+_port;
-				if(debug_level>1){
-					logger.log("on conn "+_key);
-				}
-				conn.key=_key;
-				conn.lmt=(new Date()).getTime();
-				_client_conn_a[_key]=conn;
-				conn.on("error", function (e){
-					if(debug_level>0){
-						logger.log("ws_server.conn.error",e);
-					}
-				});
-				conn.on("text", function (data_s){
-					if(debug_level>1){
-						logger.log("on text",data_s);
-					}
-					appModule.handleWebSocket(data_s,conn);
-				});
-				conn.on("close", function (code, reason){
-					if(debug_level>1){
-						logger.log("ws_server.close="+code+","+reason,"key="+ws_server.key);
-					}
-					_client_conn_a[_key]=null;
-					delete _client_conn_a[_key];
-				});
-			});
-			ws_server.on('error', function(e){
-				if(debug_level>0){
-					logger.log("ws_server.error",e);
-				}
-				if (e.code == 'EADDRINUSE'){
-					throw new Error('Address in use',{ws_port,ws_host});
-				}
-			});
-			if(debug_level>1){
-				logger.log("ws listen on "+ws_port);
-			}
-			try{
-				ws_server.listen(ws_port);
-				flag_daemon=true;
-				rt.flag_ws=rt.flag_websocket=true;
-			}catch(ex){
-				if(debug_level>0){
-					logger.log('failed to start ws_server on '+ws_host+':'+ws_port);
-					logger.log(''+ex);
-				}
-			}
-		}catch(ex){
-			if(debug_level>0){
-				logger.log("ws.ex=",ex);
-			}
-		}
-	}
-
-	////////////////////////////////////////////////////////// IPC
+	if(https_port) normalHandle('https',https_port,https_host); 
+	// IPC
 	var ipc_path=argo.ipc_path;
-	if(ipc_path){
-		if(!appModule.handleIPC) throw new Exception('appModule.handleIPC is not defined.');
-		if (process.platform ==='win32'){
-			ipc_path = ipc_path.replace(/^\//, '');
-				ipc_path = ipc_path.replace(/\//g, '-');
-					ipc_path = `\\\\.\\pipe\\${ipc_path}`;
-				}
-
-		rt.ipc_server=require('net').createServer(appModule.handleIPC);//handleIPC: conn=>{}
-		try{
-			rt.ipc_server.listen(ipc_path,()=>{ if(debug_level>0) logger.log('net listen on '+ipc_path) });
-			rt.flag_ipc=true;
-			flag_daemon=true;
-		}catch(ex){
-			if(debug_level>0){
-				logger.log('failed to start ipc_server on '+ipc_path);
-				logger.log(ex);
-			}
-		}
-	}
-
-	////////////////////////////////////////////////////////// TCP
+	if(ipc_path) normalHandle('ipc',ipc_path);
+	// TCP
 	var tcp_port=argo.tcp_port;
-	if(tcp_port){
-		if(!appModule.handleTCP) throw new Exception('appModule.handleTCP is not defined.');
-
-		rt.tcp_server=require('net').createServer(appModule.handleTCP);//handleTCP: conn=>{}
-		try{
-			rt.tcp_server.listen(tcp_port,()=>{if(debug_level>0)logger.log('net listen on '+tcp_port)});
-			rt.flag_tcp=true;
-			flag_daemon=true;
-		}catch(ex){
-			if(debug_level>0){
-				logger.log('failed to start tcp_server on '+tcp_port);
-				logger.log(ex);
-			}
-		}
-	}
-
-	////////////////////////////////////////////////////////// UDP
-	//@ref https://nodejs.org/api/dgram.html
+	if(tcp_port) normalHandle('tcp',tcp_port);
+	// UDP
 	var udp_port=argo.udp_port;
-	if(udp_port){
-		if(!appModule.handleUDP) throw new Exception('appModule.handleUDP is not defined.');
-		const dgram = require('dgram');
-		rt.udp_server = dgram.createSocket('udp4')
-			.on('error', (err) => {
-				if(debug_level>0){
-					console.log(`udp_server error:\n${err.stack}`);
-					rt.udp_server.close();
-				}
-			})
-			.on('message', appModule.handleUDP)//(msg, rinfo) => {console.log(`udp_server got: ${msg} from ${rinfo.address}:${rinfo.port}`);}
-			.on('listening', () => {
-				if(debug_level>1){
-					const address = udp_server.address();
-					logger.log(`udp_server listening ${address.address}:${address.port}`);
-				}
-			})
-			.bind(udp_port);
-		rt.flag_udp=true;
-		flag_daemon=true;
-	}
+	if(udp_port) normalHandle('udp',udp_port);
+	// WS
+	var ws_port=argo.ws_port,ws_host=argo.ws_host||'localhost';
+	if(ws_port) normalHandle('ws',ws_port);
 
-	////////////////////////////////////////////////////////// rt
-
-		rt.flag_daemon=flag_daemon;
+	rt.flag_daemon=flag_daemon;
 	return rt;
 };
 

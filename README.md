@@ -16,6 +16,8 @@ wrap protocol return nodenodeode.findHandler(argo).handle()
 		=> [logic + jobmgr]
 ```
 
+for handler, object Applicatoin is important.
+
 * [egapp, egjobmgr, eglogic, job_Health] are written to demostrate how to build an app with nodenodenode
 
 # api
