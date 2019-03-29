@@ -8,6 +8,17 @@
 		=> [logic + jobmgr]
 ```
 
+# app module (suggset)
+
+```
+parse url/get/post => c,m,p
+cc = new (loadApiCls(c))(Server,Application);
+mm = cc[m]
+pp = p
+cc.mm(pp)
+
+```
+
 # examples
 
 * [egapp, egjobmgr, eglogic, job_Health] are written to demostrate how to build an app with nodenodenode
