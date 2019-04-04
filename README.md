@@ -8,15 +8,15 @@
 		=> [logic + jobmgr]
 ```
 
-# app module (suggset)
+# app module
 
 ```
+load Application
 parse url/get/post => c,m,p
-cc = new (loadApiCls(c))(Server,Application);
-mm = cc[m]
-pp = p
-cc.mm(pp)
-
+	cc = new (loadApiCls(c))(Server,Application);
+	mm = cc[m]
+	pp = p
+	cc.mm(pp)
 ```
 
 # examples

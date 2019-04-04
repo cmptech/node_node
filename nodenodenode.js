@@ -21,7 +21,14 @@ var nodenodenode = call_argo => {
 	if(appModule.no_daemon===true){//for (flagIsMaster && flagHasWorker)
 		logger.log('appModule.no_daemon === true');
 	}else{
-		const normalHandle = (type,port,host) => {
+		(f=>{
+			f('http',argo.server_port||argo.http_port||argo.p,argo.server_host||argo.http_host||argo.h||'localhost');
+			f('https',argo.https_port,argo.https_host||'localhost');
+			f('ipc',argo.ipc_path);
+			f('tcp',argo.tcp_port,argo.tcp_host||"localhost");
+			f('udp',argo.udp_port,argo.udp_host||"localhost");
+			f('ws',argo.ws_port,argo.ws_host||'localhost');
+		})( (type,port,host) => {
 			if(!port)return;
 			var handleEntryName = 'handle'+{ http:'Http' ,https:'Https' ,ipc:'IPC' ,tcp:'TCP' ,udp:'UDP' ,ws:'WebSocket' }[type];
 			var handleEntry = appModule[handleEntryName];
@@ -63,13 +70,7 @@ var nodenodenode = call_argo => {
 				}
 				rt.flag_daemon=rt['flag_'+type]=true;
 			}catch(ex){ logger.log('failed to start http_server on '+host+':'+port,"\n",ex); }
-		}
-		normalHandle('http',argo.server_port||argo.http_port||argo.p,argo.server_host||argo.http_host||argo.h||'localhost');
-		normalHandle('https',argo.https_port,argo.https_host||'localhost');
-		normalHandle('ipc',argo.ipc_path);
-		normalHandle('tcp',argo.tcp_port,argo.tcp_host||"localhost");
-		normalHandle('udp',argo.udp_port,argo.udp_host||"localhost");
-		normalHandle('ws',argo.ws_port,argo.ws_host||'localhost');
+		} )
 	}
 	return rt;
 };
