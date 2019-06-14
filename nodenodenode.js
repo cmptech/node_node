@@ -34,7 +34,7 @@ var nodenodenode = call_argo => {
 			var handleEntry = appModule[handleEntryName];
 			try{
 				if(!handleEntry) throw (`needs appModule.${handleEntryName}()`);
-				if (process.platform ==='win32') port = "\\\\.\\pipe\\"+port.replace(new RegExp("^/"),'').replace(new RegExp("/", 'g'), '-');
+				if (type=='ipc' && process.platform ==='win32') port = "\\\\.\\pipe\\"+port.replace(new RegExp("^/"),'').replace(new RegExp("/", 'g'), '-');
 				var server = rt[type+'_server'] = {
 					http:()=>require('http').createServer()
 					,https:()=>require('https').createServer({key:fs.readFileSync(argo.https_key),cert:fs.readFileSync(argo.https_cert)})
