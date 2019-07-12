@@ -1,5 +1,5 @@
-//@see TEST.md for usage examples.
 const util = require('util');
+const fs = require('fs');
 const o2o = (o1,o2)=>{for(var k in o2){o1[k]=o2[k]}return o1}
 const argv2o=a=>(a||process.argv||[]).reduce((r,e)=>((m=e.match(/^(\/|--?)([\w-]*)="?(.*)"?$/))&&(r[m[2]]=m[3]),r),{});
 var argo=argv2o();
@@ -21,14 +21,14 @@ var nodenodenode = call_argo => {
 	if(appModule.no_daemon===true){//for (flagIsMaster && flagHasWorker)
 		logger.log('appModule.no_daemon === true');
 	}else{
-		(f=>{
+		( (argo,f)=>{
 			f('http',argo.server_port||argo.http_port||argo.p,argo.server_host||argo.http_host||argo.h||'localhost');
 			f('https',argo.https_port,argo.https_host||'localhost');
 			f('ipc',argo.ipc_path);
 			f('tcp',argo.tcp_port,argo.tcp_host||"localhost");
 			f('udp',argo.udp_port,argo.udp_host||"localhost");
 			f('ws',argo.ws_port,argo.ws_host||'localhost');
-		})( (type,port,host) => {
+		})( o2o(argo,(appModule.config||{}).argo), (type,port,host) => {
 			if(!port)return;
 			var handleEntryName = 'handle'+{ http:'Http' ,https:'Https' ,ipc:'IPC' ,tcp:'TCP' ,udp:'UDP' ,ws:'WebSocket' }[type];
 			var handleEntry = appModule[handleEntryName];
@@ -74,6 +74,7 @@ var nodenodenode = call_argo => {
 	}
 	return rt;
 };
-//return it in MODULE mode or direct execute in PROGRAM mode
-var require,module;
-(require&&module) && ( require.main==module ? nodenodenode() : (module.exports=nodenodenode) );
+module.exports=nodenodenode;
+////return it in MODULE mode or direct execute in PROGRAM mode
+//var require,module;
+//(require&&module) && ( require.main==module ? nodenodenode() : (module.exports=nodenodenode) );

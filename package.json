@@ -1,15 +1,13 @@
 {
 	"name": "nodenodenode",
-	"version": "0.8.5",
+	"version": "0.8.8",
 	"description": "mini app lib",
 	"main": "nodenodenode.js",
 	"repository": {
 		"type": "git",
 		"url": "git+https://github.com/cmptech/nodenodenode.git"
 	},
-	"keywords": [
-		"nodenodenode"
-	],
+	"keywords": [ "nodenodenode" ],
 	"author": "cmptech",
 	"license": "COMMUNISM",
 	"homepage": "https://github.com/cmptech/nodenodenode#readme",
