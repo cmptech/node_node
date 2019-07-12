@@ -28,7 +28,7 @@ var nodenodenode = call_argo => {
 			f('tcp',argo.tcp_port,argo.tcp_host||"localhost");
 			f('udp',argo.udp_port,argo.udp_host||"localhost");
 			f('ws',argo.ws_port,argo.ws_host||'localhost');
-		})( o2o(argo,(appModule.config||{}).argo), (type,port,host) => {
+		})( o2o(o2o({},(appModule.config||{}).argo),argo), (type,port,host) => {
 			if(!port)return;
 			var handleEntryName = 'handle'+{ http:'Http' ,https:'Https' ,ipc:'IPC' ,tcp:'TCP' ,udp:'UDP' ,ws:'WebSocket' }[type];
 			var handleEntry = appModule[handleEntryName];

@@ -1,26 +1,19 @@
-# WTF
+# eg pm2 later
+#node node_modules/nodenodenode/nodenodenode.js /http_port=3333 /debug_level=2 /app=./egapp /logic=eglogic
 
-* tiny api server ... bumptiously!
+#node -e "require('./nodenodenode')()" /jobs="['Health']" /ws_port=3333 /debug_level=2 /logic=eglogic
 
-```
-	protocol(http || https || ws || memory || ipc || tcp || udp)
-		=> <app module>
-		=> [logic + jobmgr]
-```
+#test require.main
+#node nodenodenode.js /http_port=3333 /debug_level=2 /app=./egapp /logic=eglogic
 
-# app module
+#node -e "require('./nodenodenode')()" /http_port=3333 /debug_level=2 /app=./egapp /logic=eglogic
 
-```
-load Application
-parse url/get/post => c,m,p
-	cc = new (loadApiCls(c))(Server,Application);
-	mm = cc[m]
-	pp = p
-	cc.mm(pp)
-```
+#pm2 start nodenodenode.js --http_port=3333 --debug_level=2 --app=./egapp --logic=eglogic
+#pm2 start nodenodenode.js -- /http_port=3333 /debug_level=2 /app=./egapp /logic=eglogic
 
-# examples
+pm2 stop "test"
+pm2 delete "test"
+#pm2 start nodenodenode.js -i 2 --name "test" --watch "$PWD" -- /http_port=3333 /debug_level=2 /app=./egapp /logic=eglogic
+pm2 start nodenodenode.js -i 0 --name "test" --watch "$PWD" --ignore-watch "tmp logs" -- /http_port=3333 /app=./egapp /logic=eglogic
 
-* [egapp, egjobmgr, eglogic, job_Health] are written to demostrate how to build an app with nodenodenode
-* or stuffs under test/
-
+node -e "require('./nodenodenode')()" /http_port=3333 /debug_level=2 /app=./egapp /logic=eglogic
