@@ -17,11 +17,11 @@ module.exports = call_argo => {
 	var logger= argo.logger || { log: (debug_level>0) ? ( (rt.is_nwjs) ?  function(){
 		try{console.log(util.format.apply(null, arguments))}catch(ex){console.log.apply(console,arguments);}
 	} : console.log ) : (()=>{}) };//tune for nwjs logger, and not log for !(debug_level>0)
-	logger.log('DEBUG ws',call_argo);
 	process.env.UV_THREADPOOL_SIZE = argo.UV_THREADPOOL_SIZE || 99; //tune for uv_queue_work()
 	if(!argo.approot) rt.approot=argo.approot=process.cwd(); 
 	rt.app=argo.app= (argo.app) ? (argo.approot + '/' + argo.app) : (__dirname + '/egapp.js');
 	var appModule=rt.appModule=$(argo.app)({argo});
+	rt.argo = argo;
 	if(appModule.no_daemon===true){//for (flagIsMaster && flagHasWorker)
 		logger.log('appModule.no_daemon === true');
 	}else{
@@ -53,7 +53,6 @@ module.exports = call_argo => {
 					.on('listening',()=>logger.log(`${type}_server listen on ${host}:${port}`))
 				switch(type){
 					case 'ws'://"nodejs-websocket" special
-						logger.log('DEBUG ws',argo);
 						var _client_conn_a={};//conn pool
 						server.on('connection',function(conn){
 							var _addr=(conn.socket.remoteAddress);
